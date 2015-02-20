@@ -1,9 +1,9 @@
 using namespace std;
 #include <bits/stdc++.h>
 
-#define TC 10
+#define TC 200
 #define MV 1001
-#define MM 100
+#define MM 2048
 
 
 int main() {
@@ -11,7 +11,7 @@ int main() {
   mt19937 gen(rd());
 
   printf("%d\n", TC);
-  int delta = 100 / TC;
+  int delta = MM / TC;
   int MN = 0;
   for (int i = 0; i < TC; ++i) {
     MN += delta;

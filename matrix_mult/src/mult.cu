@@ -37,16 +37,14 @@ int main() {
 
     for (int i = 0; i < m; ++i)
       for (int j = 0; j < o; ++j)
-        scanf("%d", B + (i * o + j));;
+        scanf("%d", B + (i * o + j));
 
     clock_t start = clock();
     multiply(A, B, C, n, m, o);
     printf("Serial multiplication : %.10lf\n", ((double) (clock() - start) / CLOCKS_PER_SEC) );
 
 
-    cudaEvent_t start_device, stop_device;
-    cudaEventCreate(&start_device);
-    cudaEventCreate(&stop_device);
+    clock_t start_device = clock();
     int *dA, *dB, *dC;
     int *ans = new int[n * o];
     if (cudaSuccess != cudaMalloc((void **) &dA, n * m * sizeof(int))) {
@@ -80,14 +78,11 @@ int main() {
 
     multiply_parallel<<<dim_grid, dim_block>>>(dA, dB, dC, n, m, o);
     cudaDeviceSynchronize();
-    // cudaEventRecord(stop_device, 0);
-    // cudaEventSynchronize(stop_device);
 
     if (cudaSuccess != cudaMemcpy(ans, dC, n * o * sizeof(int), cudaMemcpyDeviceToHost)) {
       puts("Problem copying memory to host");
       exit(1);
     }
-
 
     bool ok = true;
     for (int i = 0; i < (n * o) && ok; ++i) {
@@ -96,7 +91,7 @@ int main() {
     }
 
     if (!ok) {
-      printf("Matrix %d %d %d\n", n, m, o);
+      printf("Problem with matrix %d %d %d\n", n, m, o);
       for (int i = 0; i < n; ++i) {
         for (int j = 0; j < o; ++j) {
           printf("%d ", C[i * o + j]);
@@ -114,20 +109,11 @@ int main() {
       }
       exit(1);
     }
-    if (ok)
-      puts("Correct (:");
-    else
-      puts("Next try ):");
-
 
     cudaFree(dA);
     cudaFree(dB);
     cudaFree(dC);
-    float elapsed_time;
-    cudaEventElapsedTime(&elapsed_time, start_device, stop_device);
-    cudaEventDestroy(start_device);
-    cudaEventDestroy(stop_device);
-    printf("Parallel multiplication : %.10f\n", elapsed_time);
+    printf("Parallel multiplication : %.10f\n", (double) (clock() - start_device) / CLOCKS_PER_SEC);
 
     delete [] A, B , C, ans;
 
