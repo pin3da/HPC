@@ -3,12 +3,12 @@
 #include <cassert>
 
 __global__ void multiply_parallel(int *A, int *B, int *C, int n, int m, int o) {
-  int i = blockIdx.y * blockDim.y + threadIdx.y;
-  int j = blockIdx.x * blockDim.x + threadIdx.x;
+  int j = blockIdx.y * blockDim.y + threadIdx.y;
+  int i = blockIdx.x * blockDim.x + threadIdx.x;
   if (i < n && j < o) {
     C[i * o + j] = 0;
     for (int k = 0; k < m; ++k) {
-     C[i * o + j] += A[i * m + k] * B[k * o + j];
+      C[i * o + j] += A[i * m + k] * B[k * o + j];
     }
   }
 }
@@ -30,7 +30,6 @@ int main() {
   while (tc--) {
     int n, m, o;
     scanf("%d%d%d", &n, &m, &o);
-    printf("%d %d %d\n", n, m, o);
     int *A = new int[n * m], *B = new int[m * o], *C = new int[n * o];
     for (int i = 0; i < n; ++i)
       for (int j = 0; j < m; ++j)
@@ -89,23 +88,6 @@ int main() {
       exit(1);
     }
 
-#ifdef DEBUG
-    for (int i = 0; i < n; ++i) {
-      for (int j = 0; j < o; ++j) {
-        printf("%d ", C[i * o + j]);
-      }
-      puts("");
-    }
-
-    puts("");
-
-    for (int i = 0; i < n; ++i) {
-      for (int j = 0; j < o; ++j) {
-        printf("%d ", ans[i * o + j]);
-      }
-      puts("");
-    }
-#endif
 
     bool ok = true;
     for (int i = 0; i < (n * o) && ok; ++i) {
@@ -113,6 +95,25 @@ int main() {
         ok = 0;
     }
 
+    if (!ok) {
+      printf("Matrix %d %d %d\n", n, m, o);
+      for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < o; ++j) {
+          printf("%d ", C[i * o + j]);
+        }
+        puts("");
+      }
+
+      puts("");
+
+      for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < o; ++j) {
+          printf("%d ", ans[i * o + j]);
+        }
+        puts("");
+      }
+      exit(1);
+    }
     if (ok)
       puts("Correct (:");
     else
