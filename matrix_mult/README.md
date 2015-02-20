@@ -8,7 +8,7 @@ Directories description:
 
 A simple plotter is also provided, you can made uggly graphics like this
 
-![Matrix image](matrix_mult.png)
+![Matrix image](https://raw.githubusercontent.com/pin3da/HPC/master/matrix_mult/matrix_mul.png)
 
 ### Compile and running
 
