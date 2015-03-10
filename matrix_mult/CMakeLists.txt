@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 find_package(CUDA QUIET REQUIRED)
-set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}; -gencode arch=compute_20,code=sm_20)
+set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}; -O3 -arch=sm_30)
 cuda_add_executable(mult src/mult.cu)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -std=c++11")
 add_executable(generator test/generator.cc)
