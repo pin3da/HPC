@@ -10,6 +10,13 @@ A simple plotter is also provided, you can made uggly graphics like this
 
 ![Matrix image](https://raw.githubusercontent.com/pin3da/HPC/master/matrix_mult/matrix_mul.png)
 
+The blue line is the time obtained from the gpu, the green one is the time obtained from cpu.
+
+
+The following image shows the time for small values.
+
+![Matrix image](https://raw.githubusercontent.com/pin3da/HPC/master/matrix_mult/small_sizes.png)
+
 ### Compile and running
 
 create a build directory
