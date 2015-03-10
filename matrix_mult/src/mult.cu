@@ -41,7 +41,8 @@ int main() {
 
     clock_t start = clock();
     multiply(A, B, C, n, m, o);
-    printf("Serial multiplication : %.10lf\n", ((double) (clock() - start) / CLOCKS_PER_SEC) );
+    printf("%lld ", (long long)n * (long long)m * (long long)o);
+    printf("%.10lf ", ((double) (clock() - start) / CLOCKS_PER_SEC) );
 
 
     clock_t start_device = clock();
@@ -113,7 +114,7 @@ int main() {
     cudaFree(dA);
     cudaFree(dB);
     cudaFree(dC);
-    printf("Parallel multiplication : %.10f\n", (double) (clock() - start_device) / CLOCKS_PER_SEC);
+    printf("%.10f\n", (double) (clock() - start_device) / CLOCKS_PER_SEC);
 
     delete [] A, B , C, ans;
 
