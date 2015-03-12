@@ -27,17 +27,25 @@ create a build directory
 create cmake stuff
 
     cmake ..
-    
+
 compile & run
 
     make
     generator > input
     mult < input > data
-    
-Enjoy data and performace test :D
+
+### Performance graphics
+
+Full dataset image
+
+![Matrix Image](https://raw.githubusercontent.com/pin3da/HPC/master/matrix_mult/figure_1.png)
+
+
+Dataset with complexitu up to 1 ^ 8
+
+![Matrix Image](https://raw.githubusercontent.com/pin3da/HPC/master/matrix_mult/figure_2.png)
+
 
 ### Notes
-There is an error with cmake, compile by yourself if is possible.
-inside biuld/ perform:
-
+To compile by yourself
     /usr/local/cuda-6.5/bin/nvcc ../src/mult.cu -o mult
