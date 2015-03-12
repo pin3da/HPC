@@ -51,3 +51,5 @@ compile & run
 
 ![Matrix image](https://raw.githubusercontent.com/pin3da/HPC/master/matrix_mult_tiled/float8.png)
 
+![Matrix image](https://raw.githubusercontent.com/pin3da/HPC/master/matrix_mult_tiled/float4_8.png)
+
