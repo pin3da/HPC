@@ -33,8 +33,8 @@ compile & run
 ### Performance graphics
 
 
-![Matrix image](https://raw.githubusercontent.com/pin3da/HPC/master/matrix_mult/figure_1.png)
+![Matrix image](https://raw.githubusercontent.com/pin3da/HPC/master/matrix_mult_tiled/figure_1.png)
 
-![Matrix image](https://raw.githubusercontent.com/pin3da/HPC/master/matrix_mult/figure_2.png)
+![Matrix image](https://raw.githubusercontent.com/pin3da/HPC/master/matrix_mult_tiled/figure_2.png)
 
-![Matrix image](https://raw.githubusercontent.com/pin3da/HPC/master/matrix_mult/figure_3.png)
+![Matrix image](https://raw.githubusercontent.com/pin3da/HPC/master/matrix_mult_tiled/figure_3.png)
