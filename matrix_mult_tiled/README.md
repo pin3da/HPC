@@ -9,7 +9,7 @@ Directories description:
 - src : Matrix multiplication code
 - test : Matrix generator
 
-A simple plotter is also provided, you can made uggly graphics like this
+A simple plotter is also provided, you can make uggly graphics like this
 
 ![Matrix image](https://raw.githubusercontent.com/pin3da/HPC/master/matrix_mult/matrix_mul.png)
 
@@ -33,23 +33,23 @@ compile & run
 ### Performance graphics
 
 
-![Matrix image](https://raw.githubusercontent.com/pin3da/HPC/master/matrix_mult_tiled/figure_1.png)
+![Matrix image](https://raw.githubusercontent.com/pin3da/HPC/master/matrix_mult_tiled/images/figure_1.png)
 
-![Matrix image](https://raw.githubusercontent.com/pin3da/HPC/master/matrix_mult_tiled/figure_2.png)
+![Matrix image](https://raw.githubusercontent.com/pin3da/HPC/master/matrix_mult_tiled/images/figure_2.png)
 
-![Matrix image](https://raw.githubusercontent.com/pin3da/HPC/master/matrix_mult_tiled/figure_3.png)
+![Matrix image](https://raw.githubusercontent.com/pin3da/HPC/master/matrix_mult_tiled/images/figure_3.png)
 
-![Matrix image](https://raw.githubusercontent.com/pin3da/HPC/master/matrix_mult_tiled/tiling1.png)
+![Matrix image](https://raw.githubusercontent.com/pin3da/HPC/master/matrix_mult_tiled/images/tiling1.png)
 
-![Matrix image](https://raw.githubusercontent.com/pin3da/HPC/master/matrix_mult_tiled/tiling2.png)
+![Matrix image](https://raw.githubusercontent.com/pin3da/HPC/master/matrix_mult_tiled/images/tiling2.png)
 
-![Matrix image](https://raw.githubusercontent.com/pin3da/HPC/master/matrix_mult_tiled/4_8.png)
+![Matrix image](https://raw.githubusercontent.com/pin3da/HPC/master/matrix_mult_tiled/images/4_8.png)
 
-![Matrix image](https://raw.githubusercontent.com/pin3da/HPC/master/matrix_mult_tiled/8_16.png)
+![Matrix image](https://raw.githubusercontent.com/pin3da/HPC/master/matrix_mult_tiled/images/8_16.png)
 
-![Matrix image](https://raw.githubusercontent.com/pin3da/HPC/master/matrix_mult_tiled/16_32.png)
+![Matrix image](https://raw.githubusercontent.com/pin3da/HPC/master/matrix_mult_tiled/images/16_32.png)
 
-![Matrix image](https://raw.githubusercontent.com/pin3da/HPC/master/matrix_mult_tiled/float8.png)
+![Matrix image](https://raw.githubusercontent.com/pin3da/HPC/master/matrix_mult_tiled/images/float8.png)
 
-![Matrix image](https://raw.githubusercontent.com/pin3da/HPC/master/matrix_mult_tiled/float4_8.png)
+![Matrix image](https://raw.githubusercontent.com/pin3da/HPC/master/matrix_mult_tiled/images/float4_8.png)
 
