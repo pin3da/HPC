@@ -9,13 +9,13 @@
 {printf("Error %s at %s:%d\n", cudaGetErrorString(cudaGetLastError()), \
     __FILE__,__LINE__-1); exit(-1);}
 
-const int THPB = 2;
+const int THPB = 4;
 const int ELPB = THPB << 1;
 
 __global__ void pref_sum_parallel(int *A, int *B, int n) {
   __shared__ int tmp[ELPB];
 
-  int rid = blockIdx.x * THPB + threadIdx.x;
+  int rid = blockIdx.x * blockDim.x + threadIdx.x;
   int tid = threadIdx.x;
   int idx = (rid << 1);
 
@@ -26,7 +26,8 @@ __global__ void pref_sum_parallel(int *A, int *B, int n) {
     tmp[tid << 1] = tmp[(tid << 1) + 1] = 0;
   }
 
-  for (int d = 1; d <= ELPB; d <<= 1) {
+  int exp = 1;
+  for (int d = 1; d <= ELPB; d <<= 1, exp <<= 1) {
     __syncthreads();
     int ai = (tid << 1) + d - 1;
     int bi = (tid << 1) + (d << 1) - 1;
@@ -35,7 +36,24 @@ __global__ void pref_sum_parallel(int *A, int *B, int n) {
     }
   }
 
-  if (idx + 1< n) {
+/*
+ *  if (tid == 0)
+ *    tmp[ELPB - 1] = 0;
+ *
+ *  for (int d = exp >> 1; d > 0; d >>= 1) {
+ *    __syncthreads();
+ *    int ai = (tid << 1) + d - 1;
+ *    int bi = (tid << 1) + (d << 1) - 1;
+ *    if (bi < ELPB) {
+ *      int t = tmp[bi];
+ *      tmp[bi] += tmp[ai];
+ *      tmp[ai] = t;
+ *    }
+ *  }
+ */
+
+  __syncthreads();
+  if (idx + 1 < n) {
     B[idx] = tmp[tid << 1];
     B[idx + 1] = tmp[(tid << 1) + 1];
   }
