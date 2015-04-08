@@ -27,30 +27,28 @@ __global__ void pref_sum_parallel(int *A, int *B, int n) {
   }
 
   int exp = 1;
-  for (int d = 1; d <= ELPB; d <<= 1, exp <<= 1) {
+  for (int d = 1; d < ELPB; d <<= 1, exp <<= 1) {
     __syncthreads();
-    int ai = (tid << 1) + d - 1;
-    int bi = (tid << 1) + (d << 1) - 1;
+    int ai = (tid * (d << 1)) + d - 1;
+    int bi = (tid * (d << 1)) + (d << 1) - 1;
     if (bi <  ELPB) {
       tmp[bi] += tmp[ai];
     }
   }
 
-/*
- *  if (tid == 0)
- *    tmp[ELPB - 1] = 0;
- *
- *  for (int d = exp >> 1; d > 0; d >>= 1) {
- *    __syncthreads();
- *    int ai = (tid << 1) + d - 1;
- *    int bi = (tid << 1) + (d << 1) - 1;
- *    if (bi < ELPB) {
- *      int t = tmp[bi];
- *      tmp[bi] += tmp[ai];
- *      tmp[ai] = t;
- *    }
- *  }
- */
+  if (tid == 0)
+    tmp[ELPB - 1] = 0;
+
+  for (int d = exp >> 1; d > 0; d >>= 1) {
+    __syncthreads();
+    int ai = (tid * (d << 1)) + d - 1;
+    int bi = (tid * (d << 1)) + (d << 1) - 1;
+    if (bi < ELPB) {
+      int t = tmp[bi];
+      tmp[bi] += tmp[ai];
+      tmp[ai] = t;
+    }
+  }
 
   __syncthreads();
   if (idx + 1 < n) {
