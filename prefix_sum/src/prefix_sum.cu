@@ -9,32 +9,35 @@
 {printf("Error %s at %s:%d\n", cudaGetErrorString(cudaGetLastError()), \
     __FILE__,__LINE__-1); exit(-1);}
 
-const int THPB = 32;
+const int THPB = 2;
+const int ELPB = THPB << 1;
 
 __global__ void pref_sum_parallel(int *A, int *B, int n) {
-  __shared__ int tmp[THPB];
+  __shared__ int tmp[ELPB];
 
+  int rid = blockIdx.x * THPB + threadIdx.x;
   int tid = threadIdx.x;
-  int idx = blockIdx.x + (tid << 1) + 1;
-  if (idx < n) {
-    tmp[tid << 1]  = A[blockIdx.x + (tid << 1)];
-    tmp[(tid << 1) + 1] = A[blockIdx.x + (tid << 1) + 1];
+  int idx = (rid << 1);
+
+  if (idx + 1 < n) {
+    tmp[tid << 1]  = A[idx];
+    tmp[(tid << 1) + 1] = A[idx + 1];
   } else {
     tmp[tid << 1] = tmp[(tid << 1) + 1] = 0;
   }
 
-  for (int d = 1; d <= n; d <<= 1) {
+  for (int d = 1; d <= ELPB; d <<= 1) {
     __syncthreads();
     int ai = (tid << 1) + d - 1;
     int bi = (tid << 1) + (d << 1) - 1;
-    if (bi < THPB) {
+    if (bi <  ELPB) {
       tmp[bi] += tmp[ai];
     }
   }
 
-  if (idx < n) {
-    B[tid << 1] =  tmp[tid << 1];
-    B[(tid << 1) + 1] =  tmp[(tid << 1) + 1];
+  if (idx + 1< n) {
+    B[idx] = tmp[tid << 1];
+    B[idx + 1] = tmp[(tid << 1) + 1];
   }
 }
 
@@ -69,8 +72,8 @@ int main() {
 
     int block_size = THPB;
     dim3 dim_block(block_size, 1, 1);
-    dim3 dim_grid((n + block_size - 1) / block_size, 1, 1);
-
+    dim3 dim_grid(((n >> 1) + block_size - 1) / block_size, 1, 1);
+    printf("\nDimgrid : %d \n", ((n >> 1) + block_size - 1) / block_size);
     pref_sum_parallel<<<dim_grid, dim_block>>>(dA, dB, n);
     cudaDeviceSynchronize();
     CUDA_CHECK();
