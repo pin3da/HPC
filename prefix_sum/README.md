@@ -22,9 +22,9 @@ compile & run
     make
     task > times
 
-### Performance graphics
+<!--### Performance graphics
 
-Coming soon
+Coming soon-->
 
 ### References
 
