@@ -3,7 +3,6 @@ Parallel prefix sum
 
 Directories description:
 - src  : Parallel prefix sum code
-- test : Data generator
 
 <!--A simple plotter is also provided, you can make uggly graphics like this-->
 
@@ -21,8 +20,7 @@ create cmake stuff
 compile & run
 
     make
-    generator > input
-    task < input > data
+    task > times
 
 ### Performance graphics
 
