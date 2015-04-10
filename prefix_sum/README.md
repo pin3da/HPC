@@ -22,11 +22,11 @@ compile & run
     make
     task > times
 
-### Performance graphics
+<!--### Performance graphics
 
-Coming soon
+Coming soon-->
 
 ### References
 
-[vidia developer guide](http://developer.download.nvidia.com/compute/cuda/1.1-Beta/x86_website/projects/scan/doc/scan.pdf)
+[nvidia developer guide](http://developer.download.nvidia.com/compute/cuda/1.1-Beta/x86_website/projects/scan/doc/scan.pdf)
 
