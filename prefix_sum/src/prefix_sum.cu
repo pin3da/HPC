@@ -9,7 +9,7 @@
 {printf("Error %s at %s:%d\n", cudaGetErrorString(cudaGetLastError()), \
     __FILE__,__LINE__-1); exit(-1);}
 
-const int THPB = 2;
+const int THPB = 1024;
 const int ELPB = THPB << 1;
 
 __global__ void pref_sum_parallel(int *A, int *B, int n) {
@@ -88,9 +88,9 @@ void pref_sum(int *A, int *B, int n) {
 
 const int MV = 15;
 int main() {
-  int lengths[] = {16, 1024, 12288, 1048576, 10002432}; // 2048 * X <= 10002432
+  int lengths[] = {16, 1024, 12288, 1048576, 2097152}; // X  <= 1024 * 2048
   srand(time(0));
-  for (int tc = 0; tc < 1; ++tc) {
+  for (int tc = 0; tc < 5; ++tc) {
     int n = lengths[tc];
     int *A = new int[n], *B = new int[n];
     for (int i = 0; i < n; ++i)
@@ -115,7 +115,7 @@ int main() {
 
     dim3 dim_block(THPB, 1, 1);
     dim3 dim_grid(numBlocks, 1, 1);
-    printf("\nDimgrid : %d \n", numBlocks);
+    // printf("\nDimgrid : %d \n", numBlocks);
 
     // computes the prefix sum per block
     pref_sum_parallel <<< dim_grid, dim_block >>> (dA, dB, n);
@@ -130,10 +130,8 @@ int main() {
     CUDA_CHECK();
 
     CUDA_CALL( cudaMemcpy(ans, dB, n * sizeof(int), cudaMemcpyDeviceToHost) );
-    CUDA_CALL( cudaMemcpy(pref_b, dCT, numBlocks * sizeof(int), cudaMemcpyDeviceToHost) );
-    // printf("\n -- %d -- \n", cudaMemcpy(ans, dB, n * sizeof(int), cudaMemcpyDeviceToHost));
 
-#if 1
+#if 0
     for (int i = 0; i < n; ++i) {
       printf("%d ", A[i]);
     }
@@ -164,7 +162,6 @@ int main() {
     if (!ok) {
       printf("Problem with prefix sum on test case : %d, element %d\n", tc, idx);
       printf("%d != %d\n", B[idx], ans[idx]);
-      printf("%d == %d\n", B[idx - 1], ans[idx - 1]);
       exit(1);
     }
 
