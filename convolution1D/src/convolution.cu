@@ -14,6 +14,7 @@
 
 #include "../../utils.cu"
 
+#define THPB 32
 
 double _filter[]    = {0.006, 0.062, 0.242, 0.383, 0.242, 0.061, 0.006};
 int filter_size = 7;
@@ -24,69 +25,113 @@ void convolution_seq(double *in, double *filter, double *out, int n, int f_size)
   for (int i = 0; i < n; ++i) {
     out[i] = 0;
     for (int j = -f_size; j <= f_size; ++j) {
-      if (i + j > 0 && i + j < n) {
-        out[i] += in[i + j] * filter[j];
+      if (i + j >= 0 && i + j < n) {
+        out[i] += in[i + j] * filter[j + f_size];
       }
     }
   }
   printf(" %.10lf ", (double)(clock() - start) / CLOCKS_PER_SEC);
 }
 
+__global__ void naive(double *in, double *filter, double *out, int n, int f_size) {
+  int idx = blockIdx.x * blockDim.x + threadIdx.x;
+  double val = 0;
+  int hs = f_size >> 1;
+  if (idx < n) {
+    for (int i = -hs; i <= hs; ++i) {
+      if ((idx + i) >= 0 && (idx + i) < n)
+        val += in[idx + i] * filter[i + hs];
+    }
+    out[idx] = val;
+  }
+}
+
+__global__ void tiled(double *in, double *filter, double *out, int n, int f_size) {
+
+}
+
+__global__ void const_me(double *in, double *filter, double *out, int n, int f_size) {
+
+}
+
 void convolution_par(double *in, double *filter, double *out, int n, int f_size) {
+  clock_t start = clock();
   double *d_in, *d_filter, *d_out;
   CUDA_CALL(cudaMalloc(&d_in, n * sizeof(double)));
   CUDA_CALL(cudaMalloc(&d_filter, f_size * sizeof(double)));
   CUDA_CALL(cudaMalloc(&d_out, n * sizeof(double)));
 
-  CUDA_CALL(cudaMemcpy(d_in, in, n * sizeof(double)));
-  CUDA_CALL(cudaMemcpy(d_filter, filter, f_size * sizeof(double)));
+  CUDA_CALL(cudaMemcpy(d_in, in, n * sizeof(double), cudaMemcpyHostToDevice));
+  CUDA_CALL(cudaMemcpy(d_filter, filter, f_size * sizeof(double), cudaMemcpyHostToDevice));
 
-  // Kernel cool stuff.
+  dim3 dim_grid((n + THPB - 1) / THPB, 1, 1);
+  dim3 dim_block(THPB, 1, 1);
 
+  naive<<< dim_grid, dim_block >>> (d_in, d_filter, d_out, n, f_size);
+  cudaDeviceSynchronize();
+  CUDA_CHECK();
 
-  CUDA_CALL(cudaMemcpy(out, d_out, n * sizeof(double)));
+  CUDA_CALL(cudaMemcpy(out, d_out, n * sizeof(double), cudaMemcpyDeviceToHost));
 
   CUDA_CALL(cudaFree(d_in));
   CUDA_CALL(cudaFree(d_filter));
   CUDA_CALL(cudaFree(d_out));
+  printf(" %.10lf ", (double)(clock() - start) / CLOCKS_PER_SEC);
 }
 
 void convolution_tiled(double *in, double *filter, double *out, int n, int f_size) {
+  clock_t start = clock();
   double *d_in, *d_filter, *d_out;
   CUDA_CALL(cudaMalloc(&d_in, n * sizeof(double)));
   CUDA_CALL(cudaMalloc(&d_filter, f_size * sizeof(double)));
   CUDA_CALL(cudaMalloc(&d_out, n * sizeof(double)));
 
-  CUDA_CALL(cudaMemcpy(d_in, in, n * sizeof(double)));
-  CUDA_CALL(cudaMemcpy(d_filter, filter, f_size * sizeof(double)));
+  CUDA_CALL(cudaMemcpy(d_in, in, n * sizeof(double), cudaMemcpyHostToDevice));
+  CUDA_CALL(cudaMemcpy(d_filter, filter, f_size * sizeof(double), cudaMemcpyHostToDevice));
 
   // Kernel cool stuff.
 
 
-  CUDA_CALL(cudaMemcpy(out, d_out, n * sizeof(double)));
+  CUDA_CALL(cudaMemcpy(out, d_out, n * sizeof(double), cudaMemcpyDeviceToHost));
 
   CUDA_CALL(cudaFree(d_in));
   CUDA_CALL(cudaFree(d_filter));
   CUDA_CALL(cudaFree(d_out));
+  printf(" %.10lf ", (double)(clock() - start) / CLOCKS_PER_SEC);
 }
 
 void convolution_const(double *in, double *filter, double *out, int n, int f_size) {
+  clock_t start = clock();
   double *d_in, *d_filter, *d_out;
   CUDA_CALL(cudaMalloc(&d_in, n * sizeof(double)));
   CUDA_CALL(cudaMalloc(&d_filter, f_size * sizeof(double)));
   CUDA_CALL(cudaMalloc(&d_out, n * sizeof(double)));
 
-  CUDA_CALL(cudaMemcpy(d_in, in, n * sizeof(double)));
-  CUDA_CALL(cudaMemcpy(d_filter, filter, f_size * sizeof(double)));
+  CUDA_CALL(cudaMemcpy(d_in, in, n * sizeof(double), cudaMemcpyHostToDevice));
+  CUDA_CALL(cudaMemcpy(d_filter, filter, f_size * sizeof(double), cudaMemcpyHostToDevice));
 
   // Kernel cool stuff.
 
 
-  CUDA_CALL(cudaMemcpy(out, d_out, n * sizeof(double)));
+  CUDA_CALL(cudaMemcpy(out, d_out, n * sizeof(double), cudaMemcpyDeviceToHost));
 
   CUDA_CALL(cudaFree(d_in));
   CUDA_CALL(cudaFree(d_filter));
   CUDA_CALL(cudaFree(d_out));
+  printf(" %.10lf ", (double)(clock() - start) / CLOCKS_PER_SEC);
+}
+
+void go_out(double *output_hos, double *output_dev, int n) {
+#if 1
+  puts("");
+  for (int i = 0; i < n; ++i)
+    printf("%.5lf ", output_hos[i]);
+  puts("");
+  for (int i = 0; i < n; ++i)
+    printf("%.5lf ", output_dev[i]);
+  puts("");
+#endif
+  exit(1);
 }
 
 int main() {
@@ -102,21 +147,23 @@ int main() {
     convolution_seq(input, _filter, output_hos, n, filter_size);
     convolution_par(input, _filter, output_dev, n, filter_size);
     if (!cmp_vect(output_hos, output_dev, n)) {
-      fprintf(stderr, "Problem wiht pararallel convolution on test %d\n", tc);
-      exit(1);
+      go_out(output_hos, output_dev, n);
+      fprintf(stderr, "Problem wiht pararallel (naive) convolution on test %d\n", tc);
     }
 
-    convolution_tiled(input, _filter, output_dev, n, filter_size);
-    if (!cmp_vect(output_hos, output_dev, n)) {
-      fprintf(stderr, "Problem wiht pararallel convolution on test %d\n", tc);
-      exit(1);
-    }
-
-    convolution_const(input, _filter, output_dev, n, filter_size);
-    if (!cmp_vect(output_hos, output_dev, n)) {
-      fprintf(stderr, "Problem wiht pararallel convolution on test %d\n", tc);
-      exit(1);
-    }
+/*
+ *    convolution_tiled(input, _filter, output_dev, n, filter_size);
+ *    if (!cmp_vect(output_hos, output_dev, n)) {
+ *      fprintf(stderr, "Problem wiht parallel (tiled) convolution on test %d\n", tc);
+ *      exit(1);
+ *    }
+ *
+ *    convolution_const(input, _filter, output_dev, n, filter_size);
+ *    if (!cmp_vect(output_hos, output_dev, n)) {
+ *      fprintf(stderr, "Problem wiht pararallel (constant) convolution on test %d\n", tc);
+ *      exit(1);
+ *    }
+ */
   }
   return 0;
 }
