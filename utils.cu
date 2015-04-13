@@ -4,10 +4,10 @@
 #include <cstdlib>
 
 
-const int MV = 128;
+const int MV = 10;
 void fill_random_vec(double *a, int n) {
   for (int i = 0; i < n; ++i) {
-    a[i] = static_cast<double> (rand()) / static_cast<double> (MV);
+    a[i] = static_cast<double> (rand() % (MV + 1)) / static_cast<double> (MV);
   }
 }
 
