@@ -3,17 +3,48 @@
 
 #define CUDA_CALL(F) if( (F) != cudaSuccess ) \
 {printf("Error %s at %s:%d\n", cudaGetErrorString(cudaGetLastError()), \
-__FILE__,__LINE__); exit(-1);}
+    __FILE__,__LINE__); exit(-1);}
 #define CUDA_CHECK() if( (cudaPeekAtLastError()) != cudaSuccess ) \
 {printf("Error %s at %s:%d\n", cudaGetErrorString(cudaGetLastError()), \
-__FILE__,__LINE__-1); exit(-1);}
+    __FILE__,__LINE__-1); exit(-1);}
 
 using namespace std;
 
 #define THPB 32
+#define MASK_SIZE 3
+
+__constant__ char g_filter[MASK_SIZE * MASK_SIZE];
 
 __global__ void conv_kernel(unsigned char *image, unsigned char *ans,
-                           int width, int height, char *filter, int f_size) {
+                              int width, int height) {
+  __shared__ int s_data[THPB + MASK_SIZE - 1][THPB + MASK_SIZE - 1];
+
+  // Load data to shared memory
+  const int radius = MASK_SIZE / 2;
+  int dest = threadIdx.y * THPB + threadIdx.x,
+      destY = dest / (THPB + MASK_SIZE - 1), destX = dest % (THPB + MASK_SIZE - 1),
+      srcY = blockIdx.y * THPB + destY - radius,
+      srcX = blockIdx.x * THPB + destX - radius,
+      src = srcY * width + srcX;
+  if (srcY >= 0 && srcY < height && srcX >= 0 && srcX < width)
+    s_data[destY][destX] = image[src];
+  else
+    s_data[destY][destX] = 0;
+
+  dest = threadIdx.y * THPB + threadIdx.x + THPB * THPB;
+  destY = dest / (THPB + MASK_SIZE - 1), destX = dest % (THPB + MASK_SIZE - 1);
+  srcY = blockIdx.y * THPB + destY - radius;
+  srcX = blockIdx.x * THPB + destX - radius;
+  src = srcY * width + srcX;
+  if (destY < THPB + MASK_SIZE - 1) {
+    if (srcY >= 0 && srcY < height && srcX >= 0 && srcX < width)
+      s_data[destY][destX] = image[src];
+    else
+      s_data[destY][destX] = 0;
+  }
+  __syncthreads();
+
+
 
   int x = blockIdx.y * blockDim.y + threadIdx.y;
   int y = blockIdx.x * blockDim.x + threadIdx.x;
@@ -22,22 +53,22 @@ __global__ void conv_kernel(unsigned char *image, unsigned char *ans,
     return;
 
   int cur = 0, nx, ny;
-  int hf = 1;
-  for (int i = -hf; i <= hf; ++i) {
-    for (int j = -hf; j <= hf; ++j) {
-      nx = x + i;
-      ny = y + j;
+  for (int i = 0; i < MASK_SIZE; ++i) {
+    for (int j = 0; j < MASK_SIZE; ++j) {
+      nx = threadIdx.y + i;
+      ny = threadIdx.x + j;
       if (nx >= 0 && nx < height && ny >= 0 && ny < width) {
-        cur += image[nx * width + ny] * filter[((hf + i) * 3) + (hf + j)];
+        cur += s_data[nx][ny] * g_filter[i * MASK_SIZE + j];
       }
     }
   }
   ans[x * width + y] = min(255, max(0, cur));
-  // ans[x * width + y] = image[x * width + y];
+
+  __syncthreads();
 }
 
 double sequential(unsigned char *image, unsigned char *ans,
-                       int width, int height, char *filter, int f_size) {
+    int width, int height, char *filter, int f_size) {
   int dx[] = {-1, -1, -1, 0, 0, 0, 1, 1, 1};
   int dy[] = {-1, 0, 1, -1, 0, 1, -1, 0, 1};
 
@@ -61,28 +92,25 @@ double sequential(unsigned char *image, unsigned char *ans,
 
 
 double global_memory(unsigned char *image, unsigned char *ans,
-                       int width, int height, char *filter, int f_size) {
+    int width, int height, char *filter, int f_size) {
   clock_t start = clock();
   unsigned char *d_image, *d_ans;
-  char *d_filter;
   CUDA_CALL(cudaMalloc(&d_image, width * height * sizeof(unsigned char)));
   CUDA_CALL(cudaMalloc(&d_ans, width * height * sizeof(unsigned char)));
-  CUDA_CALL(cudaMalloc(&d_filter, f_size * f_size * sizeof(char)));
 
   CUDA_CALL(cudaMemcpy(d_image, image, width * height * sizeof(unsigned char), cudaMemcpyHostToDevice));
-  CUDA_CALL(cudaMemcpy(d_filter, filter, f_size * f_size * sizeof(char), cudaMemcpyHostToDevice));
+  CUDA_CALL(cudaMemcpyToSymbol(g_filter, filter, f_size * f_size * sizeof(char)));
 
   dim3 dim_grid((width + THPB - 1) / THPB, (height + THPB - 1) / THPB, 1);
   dim3 dim_block(THPB, THPB, 1);
 
-  conv_kernel<<< dim_grid, dim_block >>> (d_image, d_ans, width, height, d_filter, f_size);
+  conv_kernel<<< dim_grid, dim_block >>> (d_image, d_ans, width, height);
   CUDA_CHECK();
 
   CUDA_CALL(cudaMemcpy(ans, d_ans, width * height * sizeof(unsigned char), cudaMemcpyDeviceToHost));
 
   CUDA_CALL(cudaFree(d_image));
   CUDA_CALL(cudaFree(d_ans));
-  CUDA_CALL(cudaFree(d_filter));
   return (clock() - start) / (double) CLOCKS_PER_SEC;
 }
 
