@@ -12,8 +12,10 @@ using namespace std;
 
 #define THPB 32
 
-__global__ void gm_kernel(unsigned char *image, unsigned char *ans,
-                           int width, int height, char *filter, int f_size) {
+__constant__ char g_filter[9];
+
+__global__ void conv_kernel(unsigned char *image, unsigned char *ans,
+                           int width, int height) {
 
   int x = blockIdx.y * blockDim.y + threadIdx.y;
   int y = blockIdx.x * blockDim.x + threadIdx.x;
@@ -28,22 +30,12 @@ __global__ void gm_kernel(unsigned char *image, unsigned char *ans,
       nx = x + i;
       ny = y + j;
       if (nx >= 0 && nx < height && ny >= 0 && ny < width) {
-        cur += image[nx * width + ny] * filter[((hf + i) * 3) + (hf + j)];
+        cur += image[nx * width + ny] * g_filter[((hf + i) * 3) + (hf + j)];
       }
     }
   }
   ans[x * width + y] = min(255, max(0, cur));
   // ans[x * width + y] = image[x * width + y];
-}
-
-__global__ void tiled_kernel(unsigned char *image, unsigned char *ans,
-                           int width, int height, char *filter, int f_size) {
-
-}
-
-__global__ void const_kernel(unsigned char *image, unsigned char *ans,
-                           int width, int height, char *filter, int f_size) {
-
 }
 
 double sequential(unsigned char *image, unsigned char *ans,
@@ -74,25 +66,22 @@ double global_memory(unsigned char *image, unsigned char *ans,
                        int width, int height, char *filter, int f_size) {
   clock_t start = clock();
   unsigned char *d_image, *d_ans;
-  char *d_filter;
   CUDA_CALL(cudaMalloc(&d_image, width * height * sizeof(unsigned char)));
   CUDA_CALL(cudaMalloc(&d_ans, width * height * sizeof(unsigned char)));
-  CUDA_CALL(cudaMalloc(&d_filter, f_size * f_size * sizeof(char)));
 
   CUDA_CALL(cudaMemcpy(d_image, image, width * height * sizeof(unsigned char), cudaMemcpyHostToDevice));
-  CUDA_CALL(cudaMemcpy(d_filter, filter, f_size * f_size * sizeof(char), cudaMemcpyHostToDevice));
+  CUDA_CALL(cudaMemcpyToSymbol(g_filter, filter, f_size * f_size * sizeof(char)));
 
   dim3 dim_grid((width + THPB - 1) / THPB, (height + THPB - 1) / THPB, 1);
   dim3 dim_block(THPB, THPB, 1);
 
-  gm_kernel<<< dim_grid, dim_block >>> (d_image, d_ans, width, height, d_filter, f_size);
+  conv_kernel<<< dim_grid, dim_block >>> (d_image, d_ans, width, height);
   CUDA_CHECK();
 
   CUDA_CALL(cudaMemcpy(ans, d_ans, width * height * sizeof(unsigned char), cudaMemcpyDeviceToHost));
 
   CUDA_CALL(cudaFree(d_image));
   CUDA_CALL(cudaFree(d_ans));
-  CUDA_CALL(cudaFree(d_filter));
   return (clock() - start) / (double) CLOCKS_PER_SEC;
 }
 
