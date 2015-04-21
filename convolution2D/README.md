@@ -24,6 +24,13 @@ compile & run
     make
     task > times
 
+### Test
+
+After compile the code you can run all the codes several times using the script `run_test`
+
+    cd test
+    ./run_test
+
 ### Images and filters.
 
 The program is tested with a sobel kernel, you can generate cool images like these:
