@@ -123,11 +123,6 @@ void magic(const char* filename) {
   if(error) cout << "encoder error " << error << ": " << lodepng_error_text(error) << endl;
 
   cout << image.size() << '\t' << sec_time << '\t' << glm_time  << endl;
-
-
-  error = lodepng::encode("cat_grey.png", image, width, height, LCT_GREY);
-
-
 }
 
 int main(int argc, char **argv) {

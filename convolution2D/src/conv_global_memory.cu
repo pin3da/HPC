@@ -125,10 +125,6 @@ void magic(const char* filename) {
 
   cout << image.size() << '\t' << sec_time << '\t' << glm_time  << endl;
 
-
-  error = lodepng::encode("cat_grey.png", image, width, height, LCT_GREY);
-
-
 }
 
 int main(int argc, char **argv) {
