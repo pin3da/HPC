@@ -1,5 +1,7 @@
 #include "lodepng.cpp"
 #include <iostream>
+#include <string>
+#include <sstream>
 
 #define CUDA_CALL(F) if( (F) != cudaSuccess ) \
 {printf("Error %s at %s:%d\n", cudaGetErrorString(cudaGetLastError()), \
@@ -128,6 +130,12 @@ double const_memory(unsigned char *image, int width, int height) {
 
 
 void magic(const char* filename) {
+
+
+  string target(filename);
+  stringstream ss(target);
+  while(getline(ss, target, '/'));
+
   vector<unsigned char> image; //the raw pixels
   unsigned int width, height;
   unsigned int error = lodepng::decode(image, width, height, filename, LCT_GREY);
@@ -143,12 +151,12 @@ void magic(const char* filename) {
   // double sec_time = sequential(data, ans, width, height, sobel_x, 3);
   double sec_time = sequential(data, ans, width, height, sobel_y, 3);
   image = vector<unsigned char>(ans, ans +  width * height);
-  error = lodepng::encode("cat_grey_sec.png", image, width, height, LCT_GREY);
+  error = lodepng::encode(string("seq_") + target, image, width, height, LCT_GREY);
   if(error) cout << "encoder error " << error << ": " << lodepng_error_text(error) << endl;
 
   double glm_time = global_memory(data, ans, width, height, sobel_y, 3);
   image = vector<unsigned char>(ans, ans +  width * height);
-  error = lodepng::encode("cat_grey_par.png", image, width, height, LCT_GREY);
+  error = lodepng::encode(string("par_") + target, image, width, height, LCT_GREY);
   if(error) cout << "encoder error " << error << ": " << lodepng_error_text(error) << endl;
 
   cout << image.size() << '\t' << sec_time << '\t' << glm_time  << endl;
