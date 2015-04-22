@@ -22,7 +22,7 @@ create cmake stuff
 compile & run
 
     make
-    task > times
+    [./constant_mem | ./global_mem | ./shared_mem] > times
 
 ### Test
 
