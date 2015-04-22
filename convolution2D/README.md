@@ -65,6 +65,14 @@ This table contains all the averaged data for different sizes.
 
 [Table](https://github.com/pin3da/HPC/blob/master/convolution2D/test/clean.tsv)
 
+This table shows the improvement of each version compared to the sequential version.
+
+[Speed up](https://github.com/pin3da/HPC/blob/master/convolution2D/test/speed-up.tsv)
+
+This table shows the improvement of each version compared to the previous version.
+
+[Speed up 2](https://github.com/pin3da/HPC/blob/master/convolution2D/test/speed-2.tsv)
+
 ### Performance graphics II (bars).
 
 Image 1. Comparing all implementations with an image of size 168744872
