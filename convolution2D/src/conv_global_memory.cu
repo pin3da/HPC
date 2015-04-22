@@ -112,13 +112,14 @@ void magic(const char* filename) {
   unsigned int error = lodepng::decode(image, width, height, filename, LCT_GREY);
   if(error) cout << "decoder error " << error << ": " << lodepng_error_text(error) << endl;
 
-  unsigned char data[width * height];
-  unsigned char ans[width * height];
+  unsigned char *data = (unsigned char *) malloc(width * height * sizeof (unsigned char));
+  unsigned char *ans  = (unsigned char *) malloc(width * height * sizeof (unsigned char));
+
   for (int i = 0; i < image.size(); ++i)
     data[i] = image[i];
 
   char sobel_y[] = {-1, -2, -1, 0, 0, 0, 1, 2, 1};
-  char sobel_x[] = {-1, 0, 1, -2, 0, 2, -1, 0, 1};
+  // char sobel_x[] = {-1, 0, 1, -2, 0, 2, -1, 0, 1};
   // double sec_time = sequential(data, ans, width, height, sobel_x, 3);
   double sec_time = sequential(data, ans, width, height, sobel_y, 3);
   image = vector<unsigned char>(ans, ans +  width * height);
@@ -132,6 +133,8 @@ void magic(const char* filename) {
 
   cout << image.size() << '\t' << sec_time << '\t' << glm_time  << endl;
 
+  free(data);
+  free(ans);
 }
 
 int main(int argc, char **argv) {
