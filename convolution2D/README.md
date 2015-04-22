@@ -72,3 +72,12 @@ Image 1. Comparing all implementations with an image of size 168744872
 
 Image 2. Comparing all implementations with an image of size 16084992
 ![Small values](https://raw.githubusercontent.com/pin3da/HPC/master/convolution2D/images/bar10.png)
+
+
+### Conclusions tb; dr.
+
+The parallel code is really faster than serial code, even for small sizes. But the improvements of tiled version over constant memory version are not significant in contrast with the codification work.
+
+
+Special Thanks to [lvandeve](http://lodev.org/) for his great library.
+
