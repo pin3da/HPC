@@ -64,3 +64,11 @@ Image 3. Showing parallel executions with small inputs.
 This table contains all the averaged data for different sizes.
 
 [Table](https://github.com/pin3da/HPC/blob/master/convolution2D/test/clean.tsv)
+
+### Performance graphics II (bars).
+
+Image 1. Comparing all implementations with an image of size 168744872
+![Small values](https://raw.githubusercontent.com/pin3da/HPC/master/convolution2D/images/bar9.png)
+
+Image 2. Comparing all implementations with an image of size 16084992
+![Small values](https://raw.githubusercontent.com/pin3da/HPC/master/convolution2D/images/bar10.png)
