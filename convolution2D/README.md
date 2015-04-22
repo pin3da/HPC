@@ -45,7 +45,17 @@ Sobel Filter Y:
 ![Sobel Filter Y](https://raw.githubusercontent.com/pin3da/HPC/master/convolution2D/images/sobel_y.png)
 
 
-<!--### Performance graphics
+### Performance graphics
 
-Coming soon-->
 
+Discalimer: I'm learning [d3](http://d3js.org/) while I do these graphs, they have some bugs. The file `test/index.html` can be used to
+render the images.
+
+Image 1. Showing all data, parallel code wins :D
+![All data](https://raw.githubusercontent.com/pin3da/HPC/master/convolution2D/images/all_data.png)
+
+Image 2. Showing parallel executions. In this case the data was modified to move left the last value (x coordinate).
+![parallel data](https://raw.githubusercontent.com/pin3da/HPC/master/convolution2D/images/data.png)
+
+Image 3. Showing parallel executions with small inputs.
+![Small values](https://raw.githubusercontent.com/pin3da/HPC/master/convolution2D/images/small_values.png)
