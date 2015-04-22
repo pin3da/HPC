@@ -1,4 +1,4 @@
-Size	Sequential Time	Global Memory	Shared Memory	Constant Memory
+size	Sequential	Global Memory	Shared Memory	Constant Memory
 336400	0.00528246	0.0726759	0.0726641	0.070652
 408320	0.00637927	0.0732377	0.0746129	0.0733014
 1049088	0.0163288	0.0728402	0.0726491	0.0726673

@@ -36,7 +36,8 @@ int main() {
     times[line].push_back(entry(size, seq, global, shared, constant));
   }
 
-  cout << "Size\tSequential Time\tGlobal Memory\tShared Memory\tConstant Memory" << endl;
+  cout << "size\tSequential\tGlobal Memory\tShared Memory\tConstant Memory" << endl;
+  //cout << "size\tGlobal Memory\tShared Memory\tConstant Memory" << endl;
   vector<entry> ans;
   for (map<string, vector<entry> >::iterator it = times.begin(); it != times.end(); ++it) {
     line = it->first;
@@ -58,6 +59,7 @@ int main() {
   sort(ans.begin(), ans.end());
   for (int i = 0; i < ans.size(); ++i) {
     cout << ans[i].size << '\t' << ans[i].seq << '\t' << ans[i].global << '\t' << ans[i].shared << '\t' << ans[i].constant << endl;
+    //cout << ans[i].size << '\t' << ans[i].global << '\t' << ans[i].shared << '\t' << ans[i].constant << endl;
   }
   return 0;
 }
