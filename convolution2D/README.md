@@ -47,7 +47,6 @@ Sobel Filter Y:
 
 ### Performance graphics
 
-
 Discalimer: I'm learning [d3](http://d3js.org/) while I do these graphs, they have some bugs. The file `test/index.html` can be used to
 render the images.
 
@@ -59,3 +58,9 @@ Image 2. Showing parallel executions. In this case the data was modified to move
 
 Image 3. Showing parallel executions with small inputs.
 ![Small values](https://raw.githubusercontent.com/pin3da/HPC/master/convolution2D/images/small_values.png)
+
+### Performance tables
+
+This table contains all the averaged data for different sizes.
+
+[Table](https://github.com/pin3da/HPC/blob/master/convolution2D/test/clean.tsv)
