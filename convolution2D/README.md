@@ -71,7 +71,7 @@ This table shows the improvement of each version compared to the sequential vers
 
 This table shows the improvement of each version compared to the previous version.
 
-[Speed up 2](https://github.com/pin3da/HPC/blob/master/convolution2D/test/speed-2.tsv)
+[Speed up 2](https://github.com/pin3da/HPC/blob/master/convolution2D/test/speed-up2.tsv)
 
 ### Performance graphics II (bars).
 
