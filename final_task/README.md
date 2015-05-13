@@ -7,6 +7,8 @@ of a [Fast Fourier Transform](http://en.wikipedia.org/wiki/Fast_Fourier_transfor
 [Here](http://www.cs.cmu.edu/afs/cs/academic/class/15750-s01/www/notes/lect0424) you can find a good explanation
 of the algorithm.
 
+In general terms, the Fast Fourier Transform has a wide number of applications, particularly in the signal processing field, it is most commonly used as a spectrum analyzer across multiple disciplines (from audio engineering to space engineering), however it has also other important applications in computational science, for example, in data compression, particularly for lossy image and sound formats, and as a replacement for the traditional convolution algorithm. In mathematics, it has been also used to solve partial differential equations. 
+
 
 ## The problem.
 
