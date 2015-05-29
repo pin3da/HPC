@@ -93,7 +93,7 @@ vector<LL> compute_powers(int ln, LL basew, LL prime){
 }
 
 vector<LL> fft(vector<LL> &a, int dir, LL prime, LL basew) {
-  int ln = ceil(log2(a.size()));
+  int ln = ceil(log2(float(a.size())));
   vector<LL> A;
   bit_reverse_copy(a, A, ln);
   vector<LL> powers = compute_powers(ln, basew, prime);
@@ -126,7 +126,79 @@ vector<LL> fft(vector<LL> &a, int dir, LL prime, LL basew) {
   return A;
 }
 
+__device__ LL d_mod_inv(LL x, LL modulo){
+  return 0;
+}
 
+__global__ void fft_kernel (LL *A, int dir, LL prime, int ln, LL *powers, int size){
+  int pos = threadIdx.x + blockDim.x * blockIdx.x;
+
+  for (int s = 1; s <= ln; s++){
+    LL m = (1LL << s);
+    LL wm = powers[ln -s];
+    int k = pos * m;
+    if (dir == -1)
+      wm = d_mod_inv (wm, prime);
+    if (k >= size)
+      return;
+    else{
+      LL w = 1;
+      LL mh = m >> 1;
+
+      for (int j = 0; j < mh; j++){
+        LL t = (w * A[k + j + mh]) % prime;
+        LL u = A[k + j];
+        A[k + j] = (u + t) % prime;
+        A[k + j + mh] = (u - t + prime) % prime;
+        w = (w * wm) % prime;
+      }
+    }
+    __syncthreads();
+  }
+
+  if (dir < 0) {
+    LL in = d_mod_inv(size, prime);
+    for (int i = 0; i < size; i++)
+      A[i] = (A[i] * in) % prime;
+  }
+}
+
+vector<LL> fft_con(vector<LL> a, int dir, LL prime, LL basew){
+  int ln = ceil(log2(float(a.size())));
+  vector<LL> A;
+  bit_reverse_copy(a, A, ln);
+  vector<LL> powers = compute_powers(ln, basew, prime);
+
+  LL p_A[A.size()];
+  LL p_powers[powers.size()];
+  copy(A.begin(), A.end(), p_A);
+  copy(powers.begin(), powers.end(), p_powers);
+
+  LL *d_A, *d_powers;
+  cudaMalloc(&d_A, A.size() * sizeof(LL));
+  cudaMalloc(&d_powers, powers.size() * sizeof(LL));
+
+  cudaMemcpy (d_A, p_A, A.size() * sizeof (LL), cudaMemcpyHostToDevice);
+  cudaMemcpy (d_powers, p_powers, powers.size() * sizeof (LL), cudaMemcpyHostToDevice);
+
+  dim3 dimGrid(1, 1, 1);
+  dim3 dimBlock(1024, 1, 1);
+
+  fft_kernel<<<dimGrid, dimBlock>>> (d_A, dir, prime, ln, d_powers, A.size());
+
+  cudaDeviceSynchronize();
+
+  A.clear();
+  cudaMemcpy (p_A, d_A, a.size() * sizeof (LL), cudaMemcpyDeviceToHost);
+  copy(&p_A[0], &p_A[a.size()], back_inserter(A));
+
+  cudaFree(d_A);
+  cudaFree(d_powers);
+
+
+  return A;
+
+}
 
 int main(){
   LL prime = ROU_2[0].first;
@@ -148,7 +220,7 @@ int main(){
   }
   cout << endl;
 
-  vector<LL> B = fft(A, -1, prime, basew);
+  vector<LL> B = fft_con(a, 1, prime, basew);
 
   for (int i = 0; i < B.size(); i++){
     cout << B[i] << " ";
