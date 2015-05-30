@@ -1,0 +1,20 @@
+#! /bin/bash
+
+##
+# Use this file as example. Is not ready to launch the whole system.
+## 
+
+
+# Start workers
+./build/worker "tcp://127.0.0.1:6666" "tcp://127.0.0.1:6667" 0
+./build/worker "tcp://127.0.0.1:6666" "tcp://127.0.0.1:6667" 1
+
+
+# Start ventilator
+
+./build/ventilator "tcp://*:6666" "tcp://127.0.0.1:6667"
+
+
+# Start sink
+
+./build/sink "tcp://*:6667"
