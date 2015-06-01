@@ -76,11 +76,12 @@ int main(int argc, char **argv) {
 
   crt(data, mod, num_tasks, length, ans);
 
-  puts("All tasks done");
 
   for (int j = length - 1; length - j < 20; --j)
     printf("%d ", ans[j]);
   puts("");
+
+  puts("All tasks done");
 
   for (int i = 0; i < num_tasks; ++i)
     free (data[i]);
