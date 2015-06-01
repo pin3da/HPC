@@ -1,9 +1,22 @@
 #include <czmq.h>
 #include <stdlib.h>
 
+void ext_euclid(long long a, long long b, long long &x, long long &y, long long &g) {
+  x = 0, y = 1, g = b;
+  long long m, n, q, r;
+  for (long long u = 1, v = 0; a != 0; g = a, a = r) {
+    q = g / a, r = g % a;
+    m = x - u * q, n = y - v * q;
+    x = u, y = v, u = m, v = n;
+  }
+}
 
 long long mod_inv(long long n, long long m) {
-  return 0;
+  long long x, y, gcd;
+  ext_euclid(n, m, x, y, gcd);
+  if (gcd != 1)
+    return 0;
+  return (x + m) % m;
 }
 
 void crt(int **data, int *mod, int num_taks, int length, int *ans) {
