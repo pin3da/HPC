@@ -10,14 +10,25 @@ int main(int argc, char **argv) {
   zsock_t *receiver = zsock_new_pull(argv[1]);
 
   // Wait for start of batch
-  char *message = zstr_recv(receiver);
-  zstr_free(&message);
+  // char *message = zstr_recv(receiver);
+  // puts(message);
+  // zstr_free(&message);
 
-  int num_tasks = 2;
+  int num_tasks = 3;
   for (int i = 0; i < num_tasks; ++i) {
-    char *message = zstr_recv(receiver);
-    puts(message);
-    zstr_free(&message);
+    zmsg_t *message = zmsg_recv(receiver);
+    zmsg_print(message);
+    zframe_t *frame = zmsg_next(message);
+    int mod = *((int *) zframe_data(frame));
+    frame = zmsg_next(message);
+    int length = *((int *) zframe_data(frame));
+    frame = zmsg_next(message);
+    int *data = (int *) zframe_data(frame);
+    printf("Using mod: %d, len %d\n", mod, length);
+    for (int j = length - 1; length - j < 20; --j)
+      printf("%d ", data[j]);
+    puts("");
+    zmsg_destroy(&message);
   }
 
   puts("All tasks done");
