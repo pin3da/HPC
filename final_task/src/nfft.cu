@@ -126,9 +126,24 @@ vector<LL> fft(vector<LL> &a, int dir, LL prime, LL basew) {
   return A;
 }
 
-__device__ LL d_mod_inv(LL x, LL modulo){
-  return 0;
+__device__ void d_ext_euclid(LL a, LL b, LL &x, LL &y, LL &g) {
+  x = 0, y = 1, g = b;
+  LL m, n, q, r;
+  for (LL u = 1, v = 0; a != 0; g = a, a = r) {
+    q = g / a, r = g % a;
+    m = x - u * q, n = y - v * q;
+    x = u, y = v, u = m, v = n;
+  }
 }
+
+__device__ LL d_mod_inv(LL n, LL m) {
+  LL x, y, gcd;
+  d_ext_euclid(n, m, x, y, gcd);
+  if (gcd != 1)
+    return 0;
+  return (x + m) % m;
+}
+
 
 __global__ void fft_kernel (LL *A, int dir, LL prime, int ln, LL *powers, int size){
   int pos = threadIdx.x + blockDim.x * blockIdx.x;
@@ -181,7 +196,7 @@ vector<LL> fft_con(vector<LL> a, int dir, LL prime, LL basew){
   cudaMemcpy (d_A, p_A, A.size() * sizeof (LL), cudaMemcpyHostToDevice);
   cudaMemcpy (d_powers, p_powers, powers.size() * sizeof (LL), cudaMemcpyHostToDevice);
 
-  dim3 dimGrid(1, 1, 1);
+  dim3 dimGrid(ceil(float(A.size() / 1024.0)), 1, 1);
   dim3 dimBlock(1024, 1, 1);
 
   fft_kernel<<<dimGrid, dimBlock>>> (d_A, dir, prime, ln, d_powers, A.size());
@@ -203,29 +218,16 @@ vector<LL> fft_con(vector<LL> a, int dir, LL prime, LL basew){
 int main(){
   LL prime = ROU_2[0].first;
   LL basew = ROU_2[0].second;
-  vector<LL> a(4);
-  for (int i = 0; i < 4; i++){
+  vector<LL> a(4096);
+  for (int i = 0; i < a.size(); i++){
     a[i] = (i + 2) * 4;
   }
 
-  for (int i = 0; i < a.size(); i++){
-    cout << a[i] << " ";
-  }
-  cout << endl;
-
   vector<LL> A = fft(a, 1, prime, basew);
-
-  for (int i = 0; i < A.size(); i++){
-    cout << A[i] << " ";
-  }
-  cout << endl;
-
   vector<LL> B = fft_con(a, 1, prime, basew);
 
-  for (int i = 0; i < B.size(); i++){
-    cout << B[i] << " ";
-  }
-  cout << endl;
+  if (A == B)
+    cout << "yay!" << endl;
 
   return 0;
 }
