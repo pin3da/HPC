@@ -1,7 +1,9 @@
 #include <czmq.h>
 #include <stdlib.h>
 
-void ext_euclid(long long a, long long b, long long &x, long long &y, long long &g) {
+const int THPB = 1024;
+
+__device__ void ext_euclid(long long a, long long b, long long &x, long long &y, long long &g) {
   x = 0, y = 1, g = b;
   long long m, n, q, r;
   for (long long u = 1, v = 0; a != 0; g = a, a = r) {
@@ -11,7 +13,7 @@ void ext_euclid(long long a, long long b, long long &x, long long &y, long long 
   }
 }
 
-long long mod_inv(long long n, long long m) {
+__device__ long long mod_inv(long long n, long long m) {
   long long x, y, gcd;
   ext_euclid(n, m, x, y, gcd);
   if (gcd != 1)
@@ -19,20 +21,57 @@ long long mod_inv(long long n, long long m) {
   return (x + m) % m;
 }
 
-void crt(int **data, int *mod, int num_taks, int length, int *ans) {
+
+__global__ void parallel_crt(int *data, int *mod, int num_tasks, int length, long long n, int *ans) {
+  // long long n = 1;
+  // for (int i = 0; i < num_tasks; ++i)
+  //  n = n * mod[i];
+
+  int i = blockIdx.x * blockDim.x + threadIdx.x;
+
+  if (i >= length)
+    return;
+
+  // for (int i = 0; i < length; ++i) {
+  long long z = 0;
+  for (int j = 0; j < num_tasks; ++j) {
+    long long tmp = (data[(j * length) + i] * (n / mod[j])) % n;
+    tmp = (tmp * mod_inv(n / mod[j], mod[j])) % n;
+    z = (z + tmp) % n;
+  }
+  ans[i] = z;
+  // }
+}
+
+void crt(int **data, int *mod, int num_tasks, int length, int *ans) {
+  int *d_data, *d_mod, *d_ans;
+  cudaMalloc ((void **) &d_data, length * num_tasks * sizeof (int));
+  cudaMalloc ((void **) &d_mod, num_tasks * sizeof (int));
+  cudaMalloc ((void **) &d_ans, length * sizeof (int));
+
+  for (int i = 0; i < num_tasks; ++i)
+    cudaMemcpy (d_data + length * i, data[i], length * sizeof (int), cudaMemcpyHostToDevice);
+
+  cudaMemcpy (d_mod, mod, num_tasks * sizeof (int), cudaMemcpyHostToDevice);
+
+  int num_blocks = (length + THPB - 1) / THPB;
+
+  dim3 dim_block(THPB, 1, 1);
+  dim3 dim_grid(num_blocks, 1, 1);
+
+
   long long n = 1;
-  for (int i = 0; i < num_taks; ++i)
+  for (int i = 0; i < num_tasks; ++i)
     n = n * mod[i];
 
-  for (int i = 0; i < length; ++i) {
-    long long z = 0;
-    for (int j = 0; j < num_taks; ++j) {
-      long long tmp = (data[j][i] * (n / mod[j])) % n;
-      tmp = (tmp * mod_inv(n / mod[j], mod[j])) % n;
-      z = (z + tmp) % n;
-    }
-    ans[i] = z;
-  }
+  parallel_crt <<< dim_grid, dim_block >>> (d_data, d_mod, num_tasks, length, n, d_ans);
+  cudaDeviceSynchronize();
+
+  cudaMemcpy (ans, d_ans, length * sizeof (int), cudaMemcpyDeviceToHost);
+
+  cudaFree(d_data);
+  cudaFree(d_mod);
+  cudaFree(d_ans);
 }
 
 int main(int argc, char **argv) {
