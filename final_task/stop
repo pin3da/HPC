@@ -1,0 +1,5 @@
+#! /bin/bash
+
+killall -9 ventilator
+killall -9 worker
+killall -9 sink

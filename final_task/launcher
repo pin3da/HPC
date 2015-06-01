@@ -6,15 +6,16 @@
 
 
 # Start workers
-./build/worker "tcp://127.0.0.1:6666" "tcp://127.0.0.1:6667" 0
-./build/worker "tcp://127.0.0.1:6666" "tcp://127.0.0.1:6667" 1
-
-
-# Start ventilator
-
-./build/ventilator "tcp://*:6666" "tcp://127.0.0.1:6667"
-
+./build/worker ">tcp://127.0.0.1:6666" "tcp://127.0.0.1:6667" 0 &
+./build/worker ">tcp://127.0.0.1:6666" "tcp://127.0.0.1:6667" 1 &
+./build/worker ">tcp://127.0.0.1:6666" "tcp://127.0.0.1:6667" 2 &
 
 # Start sink
 
-./build/sink "tcp://*:6667"
+./build/sink "tcp://*:6667" &
+
+# Start ventilator
+
+./build/ventilator "@tcp://*:6666" "tcp://127.0.0.1:6667" &
+
+
