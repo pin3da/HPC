@@ -117,35 +117,32 @@ __device__ LL d_mod_inv(LL n, LL m) {
 }
 
 
-__global__ void fft_kernel (LL *A, int dir, LL prime, int ln, LL *powers, int size){
+__global__ void fft_kernel (LL *A, int dir, LL prime, int ln, LL *powers, int size, int s) {
   int pos = threadIdx.x + blockDim.x * blockIdx.x;
-  for (int s = 1; s <= ln; s++){
-    LL m = (1LL << s);
-    LL wm = powers[ln -s];
-    int k = pos * m;
-    if (dir == -1)
-      wm = d_mod_inv (wm, prime);
-    if (k >= size)
-      return;
-    else{
-      LL w = 1;
-      LL mh = m >> 1;
-      for (int j = 0; j < mh; j++){
-        LL t = (w * A[k + j + mh]) % prime;
-        LL u = A[k + j];
-        A[k + j] = (u + t) % prime;
-        A[k + j + mh] = (u - t + prime) % prime;
-        w = (w * wm) % prime;
-      }
+  LL m = (1LL << s);
+  LL wm = powers[ln -s];
+  int k = pos * m;
+  if (dir == -1)
+    wm = d_mod_inv (wm, prime);
+  if (k >= size)
+    return;
+  else{
+    LL w = 1;
+    LL mh = m >> 1;
+    for (int j = 0; j < mh; j++){
+      LL t = (w * A[k + j + mh]) % prime;
+      LL u = A[k + j];
+      A[k + j] = (u + t) % prime;
+      A[k + j + mh] = (u - t + prime) % prime;
+      w = (w * wm) % prime;
     }
-    __syncthreads();
   }
 
-  if (dir < 0) {
+  /*if (dir < 0) {
     LL in = d_mod_inv(size, prime);
     for (int i = 0; i < size; i++)
-      A[i] = (A[i] * in) % prime;
-  }
+    A[i] = (A[i] * in) % prime;
+    }*/
 }
 
 void fft_con(LL *a, LL *A, int dir, LL prime, LL basew, int size){
@@ -164,9 +161,11 @@ void fft_con(LL *a, LL *A, int dir, LL prime, LL basew, int size){
   dim3 dimGrid(ceil(float(size / 1024.0)), 1, 1);
   dim3 dimBlock(1024, 1, 1);
 
-  fft_kernel<<<dimGrid, dimBlock>>> (d_A, dir, prime, ln, d_powers, size);
-  gpuErrchk( cudaPeekAtLastError() );
-  gpuErrchk( cudaDeviceSynchronize() );
+  for (int s = 1; s <= ln; s++){
+    fft_kernel<<<dimGrid, dimBlock>>> (d_A, dir, prime, ln, d_powers, size, s);
+    gpuErrchk( cudaPeekAtLastError() );
+    gpuErrchk( cudaDeviceSynchronize() );
+  }
 
   cudaMemcpy (A, d_A, size * sizeof (LL), cudaMemcpyDeviceToHost);
 
@@ -204,38 +203,38 @@ int main(int argc, char **argv) {
   assert(receiver);
   assert(sender);
 
-  LL prime = ROU[0].first;
-  LL basew = ROU[0].second;
-
   while (1) {
     puts("Waiting for messages");
     zmsg_t *message = zmsg_recv(receiver);
     zmsg_print(message);
     zframe_t *frame = zmsg_next(message);
-    int mod = *((int *) zframe_data(frame));
+    LL prime = *((LL *) zframe_data(frame));
+    frame = zmsg_next(message);
+    LL basew= *((LL *) zframe_data(frame));
     frame = zmsg_next(message);
     int length = *((int *) zframe_data(frame));
     frame = zmsg_next(message);
-    int *data = (int *) zframe_data(frame);
+    long long *data = (long long *) zframe_data(frame);
 
-    printf("Worker %d solving mod: %d and length %d\n", id, mod, length);
+    printf("Worker %d solving mod: %lld and length %d\n", id, prime, length);
 
-    LL *a = (LL*) malloc (sizeof (LL) * length);
     LL *A = (LL*) malloc (sizeof (LL) * length);
-    for (int i = 0; i < length; ++i)
-      a[i] = data[i];
-    fft_con (a, A, 1, prime, basew, length);
-
+    LL *B = (LL*) malloc (sizeof (LL) * length);
+    fft_con (data, A, 1, prime, basew, length);
+    fft(data, B, 1, prime, basew, length);
+    if (cmp_vectors(A, B, length)) {
+      puts("all right");
+    } else {
+      puts("):");
+    }
 
     zmsg_t *ans = zmsg_new();
-    zmsg_addmem(ans, &mod, sizeof (int));
+    zmsg_addmem(ans, &prime, sizeof (long long));
     zmsg_addmem(ans, &length, sizeof (int));
-    zmsg_addmem(ans, data, length * sizeof (int));
+    zmsg_addmem(ans, A, length * sizeof (long long));
     zmsg_send(&ans, sender);
 
     zmsg_destroy(&message);
-    free(a);
-    free(A);
   }
 
   // Sorry my friend, this code will be unreachable.
