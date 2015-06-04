@@ -150,7 +150,6 @@ __device__ LL d_mod_inv(LL n, LL m) {
 
 __global__ void fft_kernel (LL *A, int dir, LL prime, int ln, LL *powers, int size){
   int pos = threadIdx.x + blockDim.x * blockIdx.x;
-
   for (int s = 1; s <= ln; s++){
     LL m = (1LL << s);
     LL wm = powers[ln -s];
@@ -162,7 +161,6 @@ __global__ void fft_kernel (LL *A, int dir, LL prime, int ln, LL *powers, int si
     else{
       LL w = 1;
       LL mh = m >> 1;
-
       for (int j = 0; j < mh; j++){
         LL t = (w * A[k + j + mh]) % prime;
         LL u = A[k + j];
@@ -201,8 +199,6 @@ void fft_con(LL *a, LL *A, int dir, LL prime, LL basew, int size){
   gpuErrchk( cudaPeekAtLastError() );
   gpuErrchk( cudaDeviceSynchronize() );
 
-  cudaDeviceSynchronize();
-
   cudaMemcpy (A, d_A, size * sizeof (LL), cudaMemcpyDeviceToHost);
 
   cudaFree(d_A);
@@ -224,7 +220,7 @@ bool cmp_vectors (LL *A, LL *B, int size){
 int main(){
   LL prime = ROU_2[0].first;
   LL basew = ROU_2[0].second;
-  int size = 8192;
+  int size = 8192 * 2;
   LL *a = (LL*) malloc( sizeof (LL) * size);
   LL *A = (LL*) malloc( sizeof (LL) * size);
   LL *B = (LL*) malloc( sizeof (LL) * size);

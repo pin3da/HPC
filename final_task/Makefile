@@ -1,4 +1,4 @@
-CC=/usr/local/cuda-6.5/bin/nvcc
+CC=nvcc
 CFLAGS=-O3 -gencode arch=compute_30,code=sm_30
 LDFLAGS=-lczmq -lzmq
 SOURCE=./src
