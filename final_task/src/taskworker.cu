@@ -23,33 +23,24 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
    }
 }
 
-PLL ext_euclid(LL a, LL b) {
-  if (b == 0)
-    return make_pair(1,0);
-  pair<LL,LL> rc = ext_euclid(b, a % b);
-  return make_pair(rc.second, rc.first - (a / b) * rc.second);
-}
 
-//returns -1 if there is no unique modular inverse
-LL mod_inv(LL x, LL modulo) {
-  PLL p = ext_euclid(x, modulo);
-  if ( (p.first * x + p.second * modulo) != 1 )
-    return -1;
-  return (p.first+modulo) % modulo;
-}
-
-// Computes ( a ^ exp ) % mod.
-LL mod_pow(LL a, LL exp, LL mod) {
-  LL ans = 1, base = a;
-  while (exp > 0) {
-    if (exp & 1)
-      ans = (ans * base) % mod;
-    base = (base * base) % mod;
-    exp >>= 1;
+void ext_euclid(LL a, LL b, LL &x, LL &y, LL &g) {
+  x = 0, y = 1, g = b;
+  LL m, n, q, r;
+  for (LL u = 1, v = 0; a != 0; g = a, a = r) {
+    q = g / a, r = g % a;
+    m = x - u * q, n = y - v * q;
+    x = u, y = v, u = m, v = n;
   }
-  return ans;
 }
 
+LL mod_inv(LL n, LL m) {
+  LL x, y, gcd;
+  ext_euclid(n, m, x, y, gcd);
+  if (gcd != 1)
+    return 0;
+  return (x + m) % m;
+}
 
 int bit_reverse(int x, int n) {
   int ans = 0;
@@ -80,8 +71,8 @@ void fft(LL *a, LL *A, int dir, LL prime, LL basew, int length) {
   for (int s = 1; s <= ln; s++) {
     long long m = (1LL << s);
     LL wm = powers[ln - s];
-    if (dir == -1)
-      wm =  mod_inv(wm, prime);
+    if (dir < 0)
+      wm = mod_inv(wm, prime);
 
     for (int k = 0; k < length; k += m) {
       LL w = 1, mh = m >> 1;
@@ -93,12 +84,6 @@ void fft(LL *a, LL *A, int dir, LL prime, LL basew, int length) {
         w = (w * wm) % prime;
       }
     }
-  }
-
-  if (dir < 0) {
-    LL in = mod_inv(length, prime);
-    for (int i = 0; i < length; i++)
-      A[i] = (A[i] * in) % prime;
   }
 }
 
@@ -126,8 +111,9 @@ __global__ void fft_kernel (LL *A, int dir, LL prime, int ln, LL *powers, int le
   LL m = (1LL << s);
   LL wm = powers[ln - s];
   LL k = pos * m;
-  if (dir == -1)
+  if (dir < 0)
     wm = d_mod_inv (wm, prime);
+
   if (k >= length)
     return;
 
@@ -163,14 +149,14 @@ void fft_parallel (LL *d_A, int dir, LL prime, LL ln, LL *d_powers, int length) 
 
   for (int s = 1; s <= ln; s++){
     fft_kernel<<<dim_grid, dim_block>>> (d_A, dir, prime, ln, d_powers, length, s);
-    gpuErrchk( cudaPeekAtLastError() );
-    gpuErrchk( cudaDeviceSynchronize() );
+    // gpuErrchk( cudaPeekAtLastError() );
+    // gpuErrchk( cudaDeviceSynchronize() );
   }
 }
 
 
 
-void convolution(LL *a, LL *b, LL *A, LL prime, LL basew, int length){
+void convolution_gpu(LL *a, LL *b, LL *A, LL prime, LL basew, int length){
   int ln = ceil(log2(float(length)));
   LL *B = (LL *) malloc(length * sizeof (LL));
   // TODO: parallelize the following two calls.
@@ -193,13 +179,17 @@ void convolution(LL *a, LL *b, LL *A, LL prime, LL basew, int length){
   dim3 dim_grid((length + THPB - 1) / THPB, 1, 1);
   dim3 dim_block(THPB, 1, 1);
   convolution_parallel<<< dim_grid, dim_block >>> (d_A, d_B, prime, length);
-  gpuErrchk( cudaPeekAtLastError() );
-  gpuErrchk( cudaDeviceSynchronize() );
+  // gpuErrchk( cudaPeekAtLastError() );
+  // gpuErrchk( cudaDeviceSynchronize() );
+
 
   fft_parallel(d_A, -1, prime, ln, d_powers, length);
+  // gpuErrchk( cudaPeekAtLastError() );
+  // gpuErrchk( cudaDeviceSynchronize() );
   divide_parallel<<< dim_grid, dim_block >>>(d_A, prime, length);
   gpuErrchk( cudaPeekAtLastError() );
   gpuErrchk( cudaDeviceSynchronize() );
+
 
   cudaMemcpy (A, d_A, length * sizeof (LL), cudaMemcpyDeviceToHost);
 
@@ -209,10 +199,26 @@ void convolution(LL *a, LL *b, LL *A, LL prime, LL basew, int length){
   free(powers);
 }
 
+void convolution(LL *a, LL *b, LL *A, LL prime, LL basew, int length) {
+  long long *B = (long long *) malloc(length * sizeof (long long));
+  fft(a, A, 1, prime, basew, length);
+  fft(b, B, 1, prime, basew, length);
+  for (int i = 0; i < length; ++i)
+    A[i] = (A[i] * B[i]) % prime;
+
+  memcpy(B, A, length * sizeof (long long));
+  fft(B, A, -1, prime, basew, length);
+  for (int i = 0; i < length; ++i) {
+    A[i] = (A[i] * mod_inv(length, prime)) % prime;
+  }
+  free(B);
+}
+
 bool cmp_vectors (LL *A, LL *B, int length){
   for (int i = 0; i < length; i++){
     if (A[i] != B[i]){
-      cout << A[i] << " " << B[i] << " i: " << i << endl;
+      printf("\nDifference found at %d : %lld !=  %lld\n", i, A[i], B[i]);
+      // cout << A[i] << " " << B[i] << " i: " << i << endl;
       return false;
     }
   }
@@ -258,18 +264,18 @@ int main(int argc, char **argv) {
     LL *B = (LL*) malloc (sizeof (LL) * length);
 
     clock_t start = clock();
-    convolution(data, data2, A, prime, basew, length);
-    printf("%.10f\n", ((double) (clock() - start) / CLOCKS_PER_SEC));
+    convolution_gpu(data, data2, A, prime, basew, length);
+    printf("\nParallel : %.10f\n", ((double) (clock() - start) / CLOCKS_PER_SEC));
 
-    /*start = clock();
-    fft(data, B, 1, prime, basew, length);
-    printf("%.10f\n", ((double) (clock() - start) / CLOCKS_PER_SEC));
+    start = clock();
+    convolution(data, data2, B, prime, basew, length);
+    printf("\nSerial : %.10f\n", ((double) (clock() - start) / CLOCKS_PER_SEC));
 
     if (cmp_vectors(A, B, length)) {
       puts("all right");
     } else {
       puts("):");
-    }*/
+    }
 
     zmsg_t *ans = zmsg_new();
     zmsg_addmem(ans, &prime, sizeof (long long));

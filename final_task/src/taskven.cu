@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
 
   // zstr_send(sink, "start");
 
-  int length = 1024 * 1024, num_tasks = 3;
+  int length = 1024, num_tasks = 3;
   long long *data = (long long *) malloc(length * sizeof (long long));
   long long *data2 = (long long *) malloc(length * sizeof (long long));
 
