@@ -24,11 +24,14 @@ int main(int argc, char **argv) {
 
   // zstr_send(sink, "start");
 
-  int length = 8192 * 4, num_tasks = 3;
+  int length = 1024 * 1024, num_tasks = 3;
   long long *data = (long long *) malloc(length * sizeof (long long));
+  long long *data2 = (long long *) malloc(length * sizeof (long long));
 
-  for (int i = 0; i < length; ++i) // Adding some dummy data, replace with meaningful information.
+  for (int i = 0; i < length; ++i) { // Adding some dummy data, replace with meaningful information.
     data[i] = i;
+    data2[i] = length - i;
+  }
 
   printf("Press Enter when the workers are ready: ");
   getchar();
@@ -41,6 +44,7 @@ int main(int argc, char **argv) {
     zmsg_addmem(message, &(ROU[i].second), sizeof (long long));
     zmsg_addmem(message, &length, sizeof (int));
     zmsg_addmem(message, data, length * sizeof (long long));
+    zmsg_addmem(message, data2, length * sizeof (long long));
     int ans = zmsg_send(&message, sender);
     printf("ans : %d\n", ans);
     sleep(1);
