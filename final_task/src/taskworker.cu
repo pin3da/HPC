@@ -132,7 +132,9 @@ __global__ void convolution_parallel(LL *d_A, LL *d_B, LL prime, int length) {
   int pos = blockIdx.x * blockDim.x + threadIdx.x;
   if (pos >= length)
     return;
-  d_A[pos] = (d_A[pos] * d_B[pos]) % prime;
+  d_A[pos] = (d_A[pos] * d_B[pos]) % prime;;
+
+
 }
 
 __global__ void divide_parallel(LL *d_A, LL prime, int length) {
@@ -149,50 +151,67 @@ void fft_parallel (LL *d_A, int dir, LL prime, LL ln, LL *d_powers, int length) 
 
   for (int s = 1; s <= ln; s++){
     fft_kernel<<<dim_grid, dim_block>>> (d_A, dir, prime, ln, d_powers, length, s);
-    // gpuErrchk( cudaPeekAtLastError() );
-    // gpuErrchk( cudaDeviceSynchronize() );
+    gpuErrchk( cudaPeekAtLastError() );
+    gpuErrchk( cudaDeviceSynchronize() );
   }
 }
 
+__device__ int d_bit_reverse(int x, int n){
+  int ans = 0;
+  for (int i = 0; i < n; i++)
+    if ((x >> i) & 1)
+      ans |= ((1 << (n - i - 1)));
+  return ans;
+}
 
+__global__ void bit_reverse_copy_parallel(LL *a, LL *A, int n, int length){
+  int pos = blockIdx.x * blockDim.x + threadIdx.x;
+  if (pos >= length)
+      return;
+  A[d_bit_reverse(pos, n)] = a[pos];
+}
 
 void convolution_gpu(LL *a, LL *b, LL *A, LL prime, LL basew, int length){
   int ln = ceil(log2(float(length)));
-  LL *B = (LL *) malloc(length * sizeof (LL));
   // TODO: parallelize the following two calls.
-  bit_reverse_copy(a, A, ln, length);
-  bit_reverse_copy(b, B, ln, length);
   LL *powers = (LL *) malloc (sizeof (LL) * ln);
   compute_powers(powers, ln, basew, prime);
 
-  LL *d_A, *d_B, *d_powers;
+  dim3 dim_grid((length + THPB - 1) / THPB, 1, 1);
+  dim3 dim_block(THPB, 1, 1);
+
+  LL *d_a, *d_b, *d_A, *d_B, *d_powers;
+  cudaMalloc(&d_a, length * sizeof(LL));
+  cudaMalloc(&d_b, length * sizeof(LL));
   cudaMalloc(&d_A, length * sizeof(LL));
   cudaMalloc(&d_B, length * sizeof(LL));
   cudaMalloc(&d_powers, ln * sizeof(LL));
 
-  cudaMemcpy (d_A, A, length * sizeof (LL), cudaMemcpyHostToDevice);
-  cudaMemcpy (d_B, B, length * sizeof (LL), cudaMemcpyHostToDevice);
+  cudaMemcpy (d_a, a, length * sizeof (LL), cudaMemcpyHostToDevice);
+  cudaMemcpy (d_b, b, length * sizeof (LL), cudaMemcpyHostToDevice);
   cudaMemcpy (d_powers, powers, ln * sizeof (LL), cudaMemcpyHostToDevice);
 
+  bit_reverse_copy_parallel<<< dim_grid, dim_block >>>(d_a, d_A, ln, length);
+  bit_reverse_copy_parallel<<< dim_grid, dim_block >>>(d_b, d_B, ln, length);
   fft_parallel(d_A, 1, prime, ln, d_powers, length);
   fft_parallel(d_B, 1, prime, ln, d_powers, length);
-  dim3 dim_grid((length + THPB - 1) / THPB, 1, 1);
-  dim3 dim_block(THPB, 1, 1);
+
   convolution_parallel<<< dim_grid, dim_block >>> (d_A, d_B, prime, length);
-  // gpuErrchk( cudaPeekAtLastError() );
-  // gpuErrchk( cudaDeviceSynchronize() );
-
-
-  fft_parallel(d_A, -1, prime, ln, d_powers, length);
-  // gpuErrchk( cudaPeekAtLastError() );
-  // gpuErrchk( cudaDeviceSynchronize() );
-  divide_parallel<<< dim_grid, dim_block >>>(d_A, prime, length);
   gpuErrchk( cudaPeekAtLastError() );
   gpuErrchk( cudaDeviceSynchronize() );
 
+  bit_reverse_copy_parallel<<< dim_grid, dim_block >>>(d_A, d_B, ln, length);
+  fft_parallel(d_B, -1, prime, ln, d_powers, length);
+  gpuErrchk( cudaPeekAtLastError() );
+  gpuErrchk( cudaDeviceSynchronize() );
+  divide_parallel<<< dim_grid, dim_block >>>(d_B, prime, length);
+  gpuErrchk( cudaPeekAtLastError() );
+  gpuErrchk( cudaDeviceSynchronize() );
 
-  cudaMemcpy (A, d_A, length * sizeof (LL), cudaMemcpyDeviceToHost);
+  cudaMemcpy (A, d_B, length * sizeof (LL), cudaMemcpyDeviceToHost);
 
+  cudaFree(d_a);
+  cudaFree(d_b);
   cudaFree(d_A);
   cudaFree(d_B);
   cudaFree(d_powers);
@@ -203,9 +222,9 @@ void convolution(LL *a, LL *b, LL *A, LL prime, LL basew, int length) {
   long long *B = (long long *) malloc(length * sizeof (long long));
   fft(a, A, 1, prime, basew, length);
   fft(b, B, 1, prime, basew, length);
-  for (int i = 0; i < length; ++i)
+  for (int i = 0; i < length; ++i){
     A[i] = (A[i] * B[i]) % prime;
-
+  }
   memcpy(B, A, length * sizeof (long long));
   fft(B, A, -1, prime, basew, length);
   for (int i = 0; i < length; ++i) {
@@ -214,11 +233,38 @@ void convolution(LL *a, LL *b, LL *A, LL prime, LL basew, int length) {
   free(B);
 }
 
+void fft_con(LL *a, LL *A, int dir, LL prime, LL basew, int length){
+  int ln = ceil(log2(float(length)));
+  bit_reverse_copy(a, A, ln, length);
+
+  LL *powers = (LL *) malloc (sizeof (LL) * ln);
+  compute_powers(powers, ln, basew, prime);
+
+  LL *d_A, *d_powers;
+  cudaMalloc(&d_A, length * sizeof(LL));
+  cudaMalloc(&d_powers, ln * sizeof(LL));
+
+  cudaMemcpy (d_A, A, length * sizeof (LL), cudaMemcpyHostToDevice);
+  cudaMemcpy (d_powers, powers, ln * sizeof (LL), cudaMemcpyHostToDevice);
+
+  dim3 dim_grid((length + THPB - 1) / THPB, 1, 1);
+  dim3 dim_block(THPB, 1, 1);
+
+  fft_parallel(d_A, dir, prime, ln, d_powers, length);
+
+  if (dir == -1)
+    divide_parallel<<< dim_grid, dim_block >>>(d_A, prime, length);
+
+  cudaMemcpy (A, d_A, length * sizeof (LL), cudaMemcpyDeviceToHost);
+  cudaFree(d_A);
+  cudaFree(d_powers);
+  free(powers);
+}
+
 bool cmp_vectors (LL *A, LL *B, int length){
   for (int i = 0; i < length; i++){
     if (A[i] != B[i]){
       printf("\nDifference found at %d : %lld !=  %lld\n", i, A[i], B[i]);
-      // cout << A[i] << " " << B[i] << " i: " << i << endl;
       return false;
     }
   }
@@ -263,19 +309,10 @@ int main(int argc, char **argv) {
     LL *A = (LL*) malloc (sizeof (LL) * length);
     LL *B = (LL*) malloc (sizeof (LL) * length);
 
-    clock_t start = clock();
     convolution_gpu(data, data2, A, prime, basew, length);
-    printf("\nParallel : %.10f\n", ((double) (clock() - start) / CLOCKS_PER_SEC));
-
-    start = clock();
     convolution(data, data2, B, prime, basew, length);
-    printf("\nSerial : %.10f\n", ((double) (clock() - start) / CLOCKS_PER_SEC));
-
-    if (cmp_vectors(A, B, length)) {
-      puts("all right");
-    } else {
-      puts("):");
-    }
+    if (cmp_vectors(A, B, length))
+      cout << "Yay!" << endl;
 
     zmsg_t *ans = zmsg_new();
     zmsg_addmem(ans, &prime, sizeof (long long));

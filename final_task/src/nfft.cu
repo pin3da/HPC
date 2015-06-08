@@ -220,7 +220,7 @@ bool cmp_vectors (LL *A, LL *B, int size){
 int main(){
   LL prime = ROU_2[0].first;
   LL basew = ROU_2[0].second;
-  int size = 8192 * 2;
+  int size = 1024;
   LL *a = (LL*) malloc( sizeof (LL) * size);
   LL *A = (LL*) malloc( sizeof (LL) * size);
   LL *B = (LL*) malloc( sizeof (LL) * size);
@@ -235,6 +235,9 @@ int main(){
     cout << "nay :(" << endl;
   else
     cout << "yay :)" << endl;
+
+  for (int i = 0; i < size; i++)
+    cout << B[i] << endl;
 
   free(a);
   free(A);

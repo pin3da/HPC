@@ -1,5 +1,8 @@
 #include <czmq.h>
 #include <stdlib.h>
+#include <bits/stdc++.h>
+
+using namespace std;
 
 const int THPB = 1024;
 
@@ -81,7 +84,7 @@ int main(int argc, char **argv) {
   // puts(message);
   // zstr_free(&message);
 
-  int num_tasks = 3;
+  int num_tasks = 2;
 
   long long *mod   = (long long *) malloc (num_tasks * sizeof (long long *));
   long long **data = (long long **) malloc (num_tasks * sizeof (long long *));
@@ -96,7 +99,11 @@ int main(int argc, char **argv) {
     length = *((int *) zframe_data(frame));
     frame = zmsg_next(message);
     data[i] = (long long *) malloc (length * sizeof (long long));
+
     long long *data_ptr = (long long *) zframe_data(frame);
+
+
+
     memcpy(data[i], data_ptr, length * sizeof (long long));
     printf("Using mod: %lld, len %d\n", mod[i], length);
     /* for (int j = length - 1; length - j < 20; --j)
@@ -105,6 +112,9 @@ int main(int argc, char **argv) {
     */
     zmsg_destroy(&message);
   }
+
+
+
 
   long long *ans = (long long *) malloc ( length * sizeof (long long));
 
@@ -124,4 +134,3 @@ int main(int argc, char **argv) {
   zsock_destroy(&receiver);
   return 0;
 }
-

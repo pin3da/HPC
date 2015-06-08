@@ -5,9 +5,11 @@
 
 using namespace std;
 
-pair<long long, long long> ROU[] = {make_pair(1224736769,330732430), make_pair(1711276033,927759239),
+/*pair<long long, long long> ROU[] = {make_pair(1224736769,330732430), make_pair(1711276033,927759239),
             make_pair(167772161,167489322), make_pair(469762049,343261969),
-            make_pair(754974721,643797295), make_pair(1107296257,883865065)};
+            make_pair(754974721,643797295), make_pair(1107296257,883865065)};*/
+
+pair<long long, long long> ROU[] = {make_pair(1711276033LL, 1223522572LL), make_pair(1790967809LL, 1110378081LL)};
 
 int main(int argc, char **argv) {
   if (argc < 3) {
@@ -24,7 +26,7 @@ int main(int argc, char **argv) {
 
   // zstr_send(sink, "start");
 
-  int length = 1024, num_tasks = 3;
+  int length = 8192 * 8, num_tasks = 2;
   long long *data = (long long *) malloc(length * sizeof (long long));
   long long *data2 = (long long *) malloc(length * sizeof (long long));
 
@@ -56,4 +58,3 @@ int main(int argc, char **argv) {
   zsock_destroy(&sink);
   return 0;
 }
-
