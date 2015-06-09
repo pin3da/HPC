@@ -21,7 +21,11 @@ __device__ long long mod_inv(long long n, long long m) {
   ext_euclid(n, m, x, y, gcd);
   if (gcd != 1)
     return 0;
-  return (x + m) % m;
+  if (x < 0)
+    return x += m;
+  else if (x >= m)
+    return x % m;
+  return x;
 }
 
 
@@ -37,6 +41,8 @@ __global__ void parallel_crt(long long *data, long long *mod, int num_tasks, int
     tmp = (tmp * mod_inv(n / mod[j], mod[j])) % n;
     z = (z + tmp) % n;
   }
+  if (z < 0)
+    z += n;
   ans[i] = z;
 }
 
