@@ -30,5 +30,5 @@ $(TARGET)/ntt: $(SOURCE)/nfft.cu
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $(TARGET)/ntt $(SOURCE)/nfft.cu
 
 
-clean: 
+clean:
 	rm -rf $(TARGET)/*

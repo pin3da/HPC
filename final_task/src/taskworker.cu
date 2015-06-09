@@ -12,6 +12,8 @@ const int THPB = 1024;
 typedef long long int LL;
 typedef pair<LL, LL> PLL;
 
+__constant__ LL g_powers[64];
+
 PLL ROU[] = {make_pair(1711276033LL, 1223522572LL), make_pair(1790967809LL, 1110378081LL)};
 
 inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
@@ -85,6 +87,12 @@ void fft(LL *a, LL *A, int dir, LL prime, LL basew, int length) {
       }
     }
   }
+
+  if(dir < 0){
+    for (int i = 0; i < length; ++i) {
+      A[i] = (A[i] * mod_inv(length, prime)) % prime;
+    }
+  }
 }
 
 __device__ void d_ext_euclid(LL a, LL b, LL &x, LL &y, LL &g) {
@@ -106,10 +114,10 @@ __device__ LL d_mod_inv(LL n, LL m) {
 }
 
 
-__global__ void fft_kernel (LL *A, int dir, LL prime, int ln, LL *powers, int length, int s) {
+__global__ void fft_kernel (LL *A, int dir, LL prime, int ln, int length, int s) {
   int pos = threadIdx.x + blockDim.x * blockIdx.x;
   LL m = (1LL << s);
-  LL wm = powers[ln - s];
+  LL wm = g_powers[ln - s];
   LL k = pos * m;
   if (dir < 0)
     wm = d_mod_inv (wm, prime);
@@ -145,17 +153,6 @@ __global__ void divide_parallel(LL *d_A, LL prime, int length) {
   d_A[pos] = (d_A[pos] * inv) % prime;
 }
 
-void fft_parallel (LL *d_A, int dir, LL prime, LL ln, LL *d_powers, int length) {
-  dim3 dim_grid((length + THPB - 1) / THPB, 1, 1);
-  dim3 dim_block(THPB, 1, 1);
-
-  for (int s = 1; s <= ln; s++){
-    fft_kernel<<<dim_grid, dim_block>>> (d_A, dir, prime, ln, d_powers, length, s);
-    gpuErrchk( cudaPeekAtLastError() );
-    gpuErrchk( cudaDeviceSynchronize() );
-  }
-}
-
 __device__ int d_bit_reverse(int x, int n){
   int ans = 0;
   for (int i = 0; i < n; i++)
@@ -171,40 +168,46 @@ __global__ void bit_reverse_copy_parallel(LL *a, LL *A, int n, int length){
   A[d_bit_reverse(pos, n)] = a[pos];
 }
 
+
+void fft_parallel (LL *d_a, LL *d_A, int dir, LL prime, LL ln, int length) {
+  dim3 dim_grid((length + THPB - 1) / THPB, 1, 1);
+  dim3 dim_block(THPB, 1, 1);
+
+  bit_reverse_copy_parallel <<< dim_grid, dim_block >>> (d_a, d_A, ln, length);
+
+  for (int s = 1; s <= ln; s++){
+    fft_kernel<<<dim_grid, dim_block>>> (d_A, dir, prime, ln, length, s);
+  }
+
+  if (dir < 0){
+    divide_parallel<<< dim_grid, dim_block >>>(d_A, prime, length);
+  }
+}
+
 void convolution_gpu(LL *a, LL *b, LL *A, LL prime, LL basew, int length){
   int ln = ceil(log2(float(length)));
-  // TODO: parallelize the following two calls.
   LL *powers = (LL *) malloc (sizeof (LL) * ln);
   compute_powers(powers, ln, basew, prime);
 
   dim3 dim_grid((length + THPB - 1) / THPB, 1, 1);
   dim3 dim_block(THPB, 1, 1);
 
-  LL *d_a, *d_b, *d_A, *d_B, *d_powers;
+  LL *d_a, *d_b, *d_A, *d_B;
   cudaMalloc(&d_a, length * sizeof(LL));
   cudaMalloc(&d_b, length * sizeof(LL));
   cudaMalloc(&d_A, length * sizeof(LL));
   cudaMalloc(&d_B, length * sizeof(LL));
-  cudaMalloc(&d_powers, ln * sizeof(LL));
 
   cudaMemcpy (d_a, a, length * sizeof (LL), cudaMemcpyHostToDevice);
   cudaMemcpy (d_b, b, length * sizeof (LL), cudaMemcpyHostToDevice);
-  cudaMemcpy (d_powers, powers, ln * sizeof (LL), cudaMemcpyHostToDevice);
+  cudaMemcpyToSymbol (g_powers, powers, ln * sizeof (LL));
 
-  bit_reverse_copy_parallel<<< dim_grid, dim_block >>>(d_a, d_A, ln, length);
-  bit_reverse_copy_parallel<<< dim_grid, dim_block >>>(d_b, d_B, ln, length);
-  fft_parallel(d_A, 1, prime, ln, d_powers, length);
-  fft_parallel(d_B, 1, prime, ln, d_powers, length);
+  fft_parallel(d_a, d_A, 1, prime, ln, length);
+  fft_parallel(d_b, d_B, 1, prime, ln, length);
 
   convolution_parallel<<< dim_grid, dim_block >>> (d_A, d_B, prime, length);
-  gpuErrchk( cudaPeekAtLastError() );
-  gpuErrchk( cudaDeviceSynchronize() );
 
-  bit_reverse_copy_parallel<<< dim_grid, dim_block >>>(d_A, d_B, ln, length);
-  fft_parallel(d_B, -1, prime, ln, d_powers, length);
-  gpuErrchk( cudaPeekAtLastError() );
-  gpuErrchk( cudaDeviceSynchronize() );
-  divide_parallel<<< dim_grid, dim_block >>>(d_B, prime, length);
+  fft_parallel(d_A, d_B, -1, prime, ln, length);
   gpuErrchk( cudaPeekAtLastError() );
   gpuErrchk( cudaDeviceSynchronize() );
 
@@ -214,7 +217,6 @@ void convolution_gpu(LL *a, LL *b, LL *A, LL prime, LL basew, int length){
   cudaFree(d_b);
   cudaFree(d_A);
   cudaFree(d_B);
-  cudaFree(d_powers);
   free(powers);
 }
 
@@ -227,37 +229,29 @@ void convolution(LL *a, LL *b, LL *A, LL prime, LL basew, int length) {
   }
   memcpy(B, A, length * sizeof (long long));
   fft(B, A, -1, prime, basew, length);
-  for (int i = 0; i < length; ++i) {
-    A[i] = (A[i] * mod_inv(length, prime)) % prime;
-  }
   free(B);
 }
 
-void fft_con(LL *a, LL *A, int dir, LL prime, LL basew, int length){
+void fft_gpu(LL *a, LL *A, int dir, LL prime, LL basew, int length){
   int ln = ceil(log2(float(length)));
-  bit_reverse_copy(a, A, ln, length);
 
   LL *powers = (LL *) malloc (sizeof (LL) * ln);
   compute_powers(powers, ln, basew, prime);
 
-  LL *d_A, *d_powers;
+  LL *d_a, *d_A;
+  cudaMalloc(&d_a, length * sizeof(LL));
   cudaMalloc(&d_A, length * sizeof(LL));
-  cudaMalloc(&d_powers, ln * sizeof(LL));
 
-  cudaMemcpy (d_A, A, length * sizeof (LL), cudaMemcpyHostToDevice);
-  cudaMemcpy (d_powers, powers, ln * sizeof (LL), cudaMemcpyHostToDevice);
+  cudaMemcpy (d_a, a, length * sizeof (LL), cudaMemcpyHostToDevice);
+  cudaMemcpyToSymbol (g_powers, powers, ln * sizeof (LL));
 
-  dim3 dim_grid((length + THPB - 1) / THPB, 1, 1);
-  dim3 dim_block(THPB, 1, 1);
-
-  fft_parallel(d_A, dir, prime, ln, d_powers, length);
-
-  if (dir == -1)
-    divide_parallel<<< dim_grid, dim_block >>>(d_A, prime, length);
+  fft_parallel(d_a, d_A, dir, prime, ln, length);
+  gpuErrchk( cudaPeekAtLastError() );
+  gpuErrchk( cudaDeviceSynchronize() );
 
   cudaMemcpy (A, d_A, length * sizeof (LL), cudaMemcpyDeviceToHost);
+  cudaFree(d_a);
   cudaFree(d_A);
-  cudaFree(d_powers);
   free(powers);
 }
 
@@ -321,6 +315,7 @@ int main(int argc, char **argv) {
     zmsg_send(&ans, sender);
 
     zmsg_destroy(&message);
+    free(B);
   }
 
   // Sorry my friend, this code will be unreachable.
