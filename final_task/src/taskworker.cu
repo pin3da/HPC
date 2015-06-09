@@ -283,11 +283,16 @@ int main(int argc, char **argv) {
   assert(receiver);
   assert(sender);
 
+  int device_count;
+  gpuErrchk( cudaGetDeviceCount(&device_count) );
+
   while (1) {
     puts("Waiting for messages");
     zmsg_t *message = zmsg_recv(receiver);
     zmsg_print(message);
     zframe_t *frame = zmsg_next(message);
+    int device_id = *((int *) zframe_data(frame));
+    frame = zmsg_next(message);
     LL prime = *((LL *) zframe_data(frame));
     frame = zmsg_next(message);
     LL basew= *((LL *) zframe_data(frame));
@@ -300,11 +305,25 @@ int main(int argc, char **argv) {
 
     printf("Worker %d solving mod: %lld and length %d\n", id, prime, length);
 
+    if (device_id >= 0 && device_id < device_count){
+      gpuErrchk( cudaSetDevice(device_id) );
+      cout << "Device selected manually: " << device_id << endl;
+    } else {
+      cout << "Device id not in Range, using default device" << endl;
+    }
+
     LL *A = (LL*) malloc (sizeof (LL) * length);
     LL *B = (LL*) malloc (sizeof (LL) * length);
-
+    clock_t begin = clock();
     convolution_gpu(data, data2, A, prime, basew, length);
+    clock_t end = clock();
+    cout << double(end - begin) / CLOCKS_PER_SEC << endl;
+
+    begin = clock();
     convolution(data, data2, B, prime, basew, length);
+    end = clock();
+    cout << double(end - begin) / CLOCKS_PER_SEC << endl;
+
     if (cmp_vectors(A, B, length))
       cout << "Yay!" << endl;
 

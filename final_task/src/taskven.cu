@@ -2,16 +2,16 @@
 #include <stdlib.h>
 #include <string.h>
 #include <map>
+#include <iostream>
 
 using namespace std;
 
-/*pair<long long, long long> ROU[] = {make_pair(1224736769,330732430), make_pair(1711276033,927759239),
+pair<long long, long long> ROU[] = {make_pair(1224736769,330732430), make_pair(1711276033,927759239),
             make_pair(167772161,167489322), make_pair(469762049,343261969),
-            make_pair(754974721,643797295), make_pair(1107296257,883865065)};*/
-
-pair<long long, long long> ROU[] = {make_pair(1711276033LL, 1223522572LL), make_pair(1790967809LL, 1110378081LL)};
+            make_pair(754974721,643797295), make_pair(1107296257,883865065)};
 
 int main(int argc, char **argv) {
+  int device_id = 0;
   if (argc < 3) {
     printf("Usage %s @sender_endpoint sink_endpoint\n", argv[0]);
     puts("\tTake care with the '@' at the begining of sender_endpoint.");
@@ -26,7 +26,7 @@ int main(int argc, char **argv) {
 
   // zstr_send(sink, "start");
 
-  int length = 8192 * 8, num_tasks = 2;
+  int length = 1024 * 1024, num_tasks = 2;
   long long *data = (long long *) malloc(length * sizeof (long long));
   long long *data2 = (long long *) malloc(length * sizeof (long long));
 
@@ -40,8 +40,13 @@ int main(int argc, char **argv) {
   printf("Sending task to workers...\n");
 
   for (int i = 0; i < num_tasks; ++i) {
+    cout << "Enter a device number for the Task: ";
+    cin >> device_id;
+    cout << endl;
+    getchar();
     puts("Sending message");
     zmsg_t *message = zmsg_new();
+    zmsg_addmem(message, &device_id, sizeof (int));
     zmsg_addmem(message, &(ROU[i].first), sizeof (long long));
     zmsg_addmem(message, &(ROU[i].second), sizeof (long long));
     zmsg_addmem(message, &length, sizeof (int));
