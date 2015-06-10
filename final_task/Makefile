@@ -10,7 +10,7 @@ LDFLAGS=-lczmq -lzmq
 SOURCE=./src
 TARGET=./build
 
-all: dir $(TARGET)/ventilator $(TARGET)/worker $(TARGET)/sink $(TARGET)/ntt
+all: dir $(TARGET)/ventilator $(TARGET)/worker $(TARGET)/sink $(TARGET)/ntt $(TARGET)/generator
 
 dir:
 	mkdir -p $(TARGET)
@@ -29,6 +29,8 @@ $(TARGET)/sink: $(SOURCE)/tasksink.cu
 $(TARGET)/ntt: $(SOURCE)/nfft.cu
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $(TARGET)/ntt $(SOURCE)/nfft.cu
 
+$(TARGET)/generator: $(SOURCE)/generator.cc
+	g++ -std=c++11 -O3 -o $(TARGET)/generator $(SOURCE)/generator.cc
 
 clean:
 	rm -rf $(TARGET)/*
