@@ -37,6 +37,20 @@ After all those computations, there is a sink who is in charge of merge the resu
 
 [1]. This could be understood as several GPU's on the same PC or several GPU's on several PCs.
 
+## The Implementation
+
+We used, as said before CUDA 6 along with ZMQ, along with the CZMQ wrapper.
+
+Right now we have implemented a parallelized version of the FFT, the Convolution using the FFT, and the Chinese Remainder Theorem (CRT for short). The first two are implemented in the component known as "worker" while the last one is implemented in what is known as the "sink", this allows each machine to compute a convolution (e.g. machine one computes convolution mod a, machine two computes concolution mod b, etc.) while the sink computes the CRT, given us the convolution a * b *c. these implementations are somewhat basic and use mostly global memory to access data, a little portion of the code uses constant memory. We also have a Serial version of the whole process for comparison purposes.
+
+## Conclusions
+
+* ZMQ presents itself as a very good alternative for working with parallel models like this one, the architecture itself is pretty simple but efficient, and can be effectively used in conjunction with CUDA without much hassle.
+* The FFT has many different implementations, the one implemented here has a complexity of O(n*log(n)), and in our experience it runs much faster on a processor than on a GPU, this can probably be changed making a better use of the GPU (Using shared Memory for example).
+* The CRT on the other hand reacts very well to being implemented on a parallel enviroment (CUDA) exposing decent acceleration in comparison with the serial version.
+* The past two conclusions lead us to believe the best performance/work ratio implementation may be to use each worker to compute the serial version of the FFT (and convolution), and CUDA on the sink to compute the CRT which can be easily implemented in parallel with a decent performance boost.
+* There is a library called cuFFT which provides different FFT implementations that are very well optimized, this could be another resource to use in the future.
+
 ### References
 
 - [Wikipedia Number-Theoretic transform](http://en.wikipedia.org/wiki/Discrete_Fourier_transform_%28general%29#Number-theoretic_transform)
