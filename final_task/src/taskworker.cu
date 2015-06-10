@@ -288,9 +288,9 @@ int main(int argc, char **argv) {
   gpuErrchk( cudaGetDeviceCount(&device_count) );
 
   while (1) {
-    puts("Waiting for messages");
+    // puts("Waiting for messages");
     zmsg_t *message = zmsg_recv(receiver);
-    zmsg_print(message);
+    // zmsg_print(message);
     zframe_t *frame = zmsg_next(message);
     LL prime = *((LL *) zframe_data(frame));
     frame = zmsg_next(message);
@@ -302,11 +302,11 @@ int main(int argc, char **argv) {
     frame = zmsg_next(message);
     long long *data2 = (long long *) zframe_data(frame);
 
-    printf("Worker %d solving mod: %lld and length %d\n", id, prime, length);
+    // printf("Worker %d solving mod: %lld and length %d\n", id, prime, length);
 
     if (device_id >= 0 && device_id < device_count){
       gpuErrchk( cudaSetDevice(device_id) );
-      printf("Device selected manually: %d\n", device_id);
+      // printf("Device selected manually: %d\n", device_id);
     } else {
       printf("Device id not in Range, using default device\n");
     }
@@ -323,8 +323,9 @@ int main(int argc, char **argv) {
     end = clock();
     printf("%.10lf\n", double(end - begin) / CLOCKS_PER_SEC);
 
-    if (cmp_vectors(A, B, length))
-      printf("correct\n");
+    cmp_vectors(A,B, length);
+    // if (cmp_vectors(A, B, length))
+      // printf("correct\n");
 
     zmsg_t *ans = zmsg_new();
     zmsg_addmem(ans, &prime, sizeof (long long));
