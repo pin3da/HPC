@@ -11,7 +11,6 @@ pair<long long, long long> ROU[] = {make_pair(1224736769,330732430), make_pair(1
             make_pair(754974721,643797295), make_pair(1107296257,883865065)};
 
 int main(int argc, char **argv) {
-  int device_id = 0;
   if (argc < 3) {
     printf("Usage %s @sender_endpoint sink_endpoint\n", argv[0]);
     puts("\tTake care with the '@' at the begining of sender_endpoint.");
@@ -40,13 +39,8 @@ int main(int argc, char **argv) {
   printf("Sending task to workers...\n");
 
   for (int i = 0; i < num_tasks; ++i) {
-    cout << "Enter a device number for the Task: ";
-    cin >> device_id;
-    cout << endl;
-    getchar();
     puts("Sending message");
     zmsg_t *message = zmsg_new();
-    zmsg_addmem(message, &device_id, sizeof (int));
     zmsg_addmem(message, &(ROU[i].first), sizeof (long long));
     zmsg_addmem(message, &(ROU[i].second), sizeof (long long));
     zmsg_addmem(message, &length, sizeof (int));

@@ -267,15 +267,16 @@ bool cmp_vectors (LL *A, LL *B, int length){
 
 
 int main(int argc, char **argv) {
-  if (argc < 3) {
-    printf("Usage %s >receiver_endpoint sender_endpoint <id>\n", argv[0]);
+  if (argc < 5) {
+    printf("Usage %s >receiver_endpoint sender_endpoint gpu_id worker_id\n", argv[0]);
     puts("\tTake care with the '>' at the beginin of receiver endpoint.");
     exit(0);
   }
 
-  int id = 0;
-  if (argc > 3)
-    id = atoi(argv[3]);
+  int id = 0, device_id = 0;
+
+  device_id = atoi(argv[3]);
+  id = atoi(argv[4]);
 
   zsock_t *receiver = zsock_new_pull(argv[1]);
   zsock_t *sender   = zsock_new_push(argv[2]);
@@ -287,12 +288,10 @@ int main(int argc, char **argv) {
   gpuErrchk( cudaGetDeviceCount(&device_count) );
 
   while (1) {
-    puts("Waiting for messages");
+    // puts("Waiting for messages");
     zmsg_t *message = zmsg_recv(receiver);
-    zmsg_print(message);
+    // zmsg_print(message);
     zframe_t *frame = zmsg_next(message);
-    int device_id = *((int *) zframe_data(frame));
-    frame = zmsg_next(message);
     LL prime = *((LL *) zframe_data(frame));
     frame = zmsg_next(message);
     LL basew= *((LL *) zframe_data(frame));
@@ -303,13 +302,13 @@ int main(int argc, char **argv) {
     frame = zmsg_next(message);
     long long *data2 = (long long *) zframe_data(frame);
 
-    printf("Worker %d solving mod: %lld and length %d\n", id, prime, length);
+    // printf("Worker %d solving mod: %lld and length %d\n", id, prime, length);
 
     if (device_id >= 0 && device_id < device_count){
       gpuErrchk( cudaSetDevice(device_id) );
-      cout << "Device selected manually: " << device_id << endl;
+      // printf("Device selected manually: %d\n", device_id);
     } else {
-      cout << "Device id not in Range, using default device" << endl;
+      printf("Device id not in Range, using default device\n");
     }
 
     LL *A = (LL*) malloc (sizeof (LL) * length);
@@ -317,15 +316,16 @@ int main(int argc, char **argv) {
     clock_t begin = clock();
     convolution_gpu(data, data2, A, prime, basew, length);
     clock_t end = clock();
-    cout << double(end - begin) / CLOCKS_PER_SEC << endl;
+    printf("%.10lf\n", double(end - begin) / CLOCKS_PER_SEC);
 
     begin = clock();
     convolution(data, data2, B, prime, basew, length);
     end = clock();
-    cout << double(end - begin) / CLOCKS_PER_SEC << endl;
+    printf("%.10lf\n", double(end - begin) / CLOCKS_PER_SEC);
 
-    if (cmp_vectors(A, B, length))
-      cout << "Yay!" << endl;
+    cmp_vectors(A,B, length);
+    // if (cmp_vectors(A, B, length))
+      // printf("correct\n");
 
     zmsg_t *ans = zmsg_new();
     zmsg_addmem(ans, &prime, sizeof (long long));

@@ -133,11 +133,13 @@ int main(int argc, char **argv){
     convolution (data, data2, full_data[i], ROU[i].first, ROU[i].second, length);
     mods[i] = ROU[i].first;
   }
+  clock_t end = clock();
+  cout << double(end - begin) / CLOCKS_PER_SEC << endl;
 
   LL *ans = (LL *) malloc (length * sizeof(LL));
+  begin = clock();
   crt (full_data, mods, num_tasks, length, ans);
-  clock_t end = clock();
-
+  end = clock();
   cout << double(end - begin) / CLOCKS_PER_SEC << endl;
 
   free (data);

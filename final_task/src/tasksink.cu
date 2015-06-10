@@ -98,7 +98,7 @@ int main(int argc, char **argv) {
   int length = 0;
   for (int i = 0; i < num_tasks; ++i) {
     zmsg_t *message = zmsg_recv(receiver);
-    zmsg_print(message);
+    // zmsg_print(message);
     zframe_t *frame = zmsg_next(message);
     mod[i] = *((long long *) zframe_data(frame));
     frame = zmsg_next(message);
@@ -108,30 +108,26 @@ int main(int argc, char **argv) {
 
     long long *data_ptr = (long long *) zframe_data(frame);
 
-
-
     memcpy(data[i], data_ptr, length * sizeof (long long));
-    printf("Using mod: %lld, len %d\n", mod[i], length);
-    /* for (int j = length - 1; length - j < 20; --j)
+    /*printf("Using mod: %lld, len %d\n", mod[i], length);
+     for (int j = length - 1; length - j < 20; --j)
       printf("%lld ", data[i][j]);
     puts("");
     */
     zmsg_destroy(&message);
   }
 
-
-
-
   long long *ans = (long long *) malloc ( length * sizeof (long long));
 
+  clock_t start = clock();
   crt(data, mod, num_tasks, length, ans);
+  printf("%.10lf\n", (double) (clock() - start) / CLOCKS_PER_SEC);
 
-
-  for (int j = length - 1; length - j < 20; --j)
+  /*for (int j = length - 1; length - j < 20; --j)
     printf("%lld ", ans[j]);
   puts("");
 
-  puts("All tasks done");
+  puts("All tasks done"); */
 
   for (int i = 0; i < num_tasks; ++i)
     free (data[i]);
