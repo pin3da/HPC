@@ -19,10 +19,22 @@ The first way to attempt to solve this problem could be using a Fast Fourier tra
 
 The second way (which we use) is using a Number-Theoretic transform (NTT) to compute the answer mod a, b, c and then using the [CRT](http://en.wikipedia.org/wiki/Chinese_remainder_theorem) reconstruct the answer mod (a * b * c).
 
+## The algorithm
+Here is the basic algorithm used in our implementation of the FFT:
+
+![Algorithm](https://raw.githubusercontent.com/pin3da/HPC/master/final_task/doc/images/FFT_Iter.png) 
+
+The Bit Reverse Copy is a simple algorithm that will help us get the items of the vector on the order we need them according to the following tree:
+
+![BCR](https://raw.githubusercontent.com/pin3da/HPC/master/final_task/doc/images/BCR.png)
+
 ## Parallel solution.
 
-In our solution we use [CUDA](http://en.wikipedia.org/wiki/CUDA) in order to compute one NTT (yes, one) in parallel.
-As we need to compute several NTT with different modulos  we use [ZMQ](http://zeromq.org/) to connect several
+In our solution we use [CUDA](http://en.wikipedia.org/wiki/CUDA) in order to compute one NTT (yes, one) in parallel (which graphically would look something like this):
+
+![Parallel](https://raw.githubusercontent.com/pin3da/HPC/master/final_task/doc/images/Parallel.png)
+
+As we need to compute several NTT with different modulos we use [ZMQ](http://zeromq.org/) to connect several
 GPU's on a cluster [1].
 
 The architecture is quite simple and is based in the [Parallel pipeline](http://zguide.zeromq.org/page:all#toc14) suggested by ZMQ.
