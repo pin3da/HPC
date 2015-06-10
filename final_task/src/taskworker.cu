@@ -318,7 +318,7 @@ int main(int argc, char **argv) {
     clock_t end = clock();
     printf("%.10lf\n", double(end - begin) / CLOCKS_PER_SEC);
 
-    begin = clock();
+    /*begin = clock();
     convolution(data, data2, B, prime, basew, length);
     end = clock();
     printf("%.10lf\n", double(end - begin) / CLOCKS_PER_SEC);
@@ -326,6 +326,7 @@ int main(int argc, char **argv) {
     cmp_vectors(A,B, length);
     // if (cmp_vectors(A, B, length))
       // printf("correct\n");
+    */
 
     zmsg_t *ans = zmsg_new();
     zmsg_addmem(ans, &prime, sizeof (long long));

@@ -25,17 +25,18 @@ int main(int argc, char **argv) {
 
   // zstr_send(sink, "start");
 
-  int length = 1024 * 1024, num_tasks = 2;
+  int length, num_tasks = 6;
+  cin >> length;
   long long *data = (long long *) malloc(length * sizeof (long long));
   long long *data2 = (long long *) malloc(length * sizeof (long long));
 
-  for (int i = 0; i < length; ++i) { // Adding some dummy data, replace with meaningful information.
-    data[i] = i;
-    data2[i] = length - i;
-  }
+  for (int i = 0; i < length; ++i)
+    cin >> data[i];
 
-  printf("Press Enter when the workers are ready: ");
-  getchar();
+  for (int i = 0; i < length; ++i)
+    cin >> data2[i];
+
+  sleep(3);
   printf("Sending task to workers...\n");
 
   for (int i = 0; i < num_tasks; ++i) {

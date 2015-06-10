@@ -115,15 +115,19 @@ int main(int argc, char **argv){
     return 0;
   }
 
-  const int length = 1024 * 1024;
+  int length;
   const int num_tasks = atoi(argv[1]);
+
+  cin >> length;
 
   LL *data = (LL *) malloc (length * sizeof(LL));
   LL *data2 = (LL *) malloc(length * sizeof(LL));
-  for (int i = 0; i < length; ++i){
-    data[i] = i;
-    data2[i] = length - i;
-  }
+  for (int i = 0; i < length; ++i)
+    cin >> data[i];
+
+  for (int i = 0; i < length; ++i)
+    cin >> data2[i];
+
 
   LL **full_data = (LL **) malloc (num_tasks * sizeof (LL *));
   LL *mods = (LL *) malloc (num_tasks * sizeof(LL));

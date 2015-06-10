@@ -90,7 +90,7 @@ int main(int argc, char **argv) {
   // puts(message);
   // zstr_free(&message);
 
-  int num_tasks = 2;
+  int num_tasks = 6;
 
   long long *mod   = (long long *) malloc (num_tasks * sizeof (long long *));
   long long **data = (long long **) malloc (num_tasks * sizeof (long long *));
